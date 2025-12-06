@@ -1,5 +1,66 @@
 [
   {
+    "id": "2cpxfaxi",
+    "name": "2025-12-06_02-10-59",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/2cpxfaxi",
+    "created_at": "2025-12-06T10:11:05Z",
+    "tags": [
+      "nightly"
+    ],
+    "metrics": {
+      "Episode_Reward": {
+        "action_rate_l2": -0.806179404258728,
+        "joint_limit": -0.012203477323055267,
+        "motion_body_ang_vel": 0.3191375732421875,
+        "motion_body_lin_vel": 0.5753626227378845,
+        "motion_body_ori": 0.5614711046218872,
+        "motion_body_pos": 0.7348141670227051,
+        "motion_global_root_ori": 0.34195420145988464,
+        "motion_global_root_pos": 0.1866620033979416,
+        "self_collisions": -0.007152142934501171
+      },
+      "Episode_Termination": {
+        "anchor_ori": 0,
+        "anchor_pos": 0.3333333432674408,
+        "ee_body_pos": 4.4166669845581055,
+        "time_out": 6.458333492279053
+      },
+      "Loss": {
+        "entropy": 16.736558532714845,
+        "learning_rate": 0.00017085937500000006,
+        "surrogate": -0.009110634512035176,
+        "value": 0.0960416566580534
+      },
+      "Metrics": {
+        "motion/error_anchor_ang_vel": 2.1480894088745117,
+        "motion/error_anchor_lin_vel": 0.9473460912704468,
+        "motion/error_anchor_pos": 0.41703757643699646,
+        "motion/error_anchor_rot": 0.24886855483055115,
+        "motion/error_body_ang_vel": 3.4882211685180664,
+        "motion/error_body_lin_vel": 1.0259103775024414,
+        "motion/error_body_pos": 0.10962772369384766,
+        "motion/error_body_rot": 0.35804861783981323,
+        "motion/error_joint_pos": 1.085392713546753,
+        "motion/error_joint_vel": 13.131305694580078,
+        "motion/sampling_entropy": 0.2649262547492981,
+        "motion/sampling_top1_bin": 0.3333333730697632,
+        "motion/sampling_top1_prob": 0.890556275844574
+      },
+      "Perf": {
+        "collection_time": 0.7462317943572998,
+        "learning_time": 0.06144452095031738,
+        "total_fps": 121712
+      },
+      "Policy": {
+        "mean_noise_std": 0.4361766874790192
+      },
+      "Train": {
+        "mean_episode_length": 366.42,
+        "mean_reward": 17.862473215460778
+      }
+    }
+  },
+  {
     "id": "lhud0asc",
     "name": "2025-12-05_21-54-31",
     "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/lhud0asc",
