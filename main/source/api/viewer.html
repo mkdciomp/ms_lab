@@ -485,11 +485,7 @@ document.write(`
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#baseviewer">BaseViewer</a><ul class="visible nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer"><code class="docutils literal notranslate"><span class="pre">BaseViewer</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer.__init__"><code class="docutils literal notranslate"><span class="pre">BaseViewer.__init__()</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer.request_action"><code class="docutils literal notranslate"><span class="pre">BaseViewer.request_action()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer.tick"><code class="docutils literal notranslate"><span class="pre">BaseViewer.tick()</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer.target_realtime"><code class="docutils literal notranslate"><span class="pre">BaseViewer.target_realtime</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer.actual_realtime"><code class="docutils literal notranslate"><span class="pre">BaseViewer.actual_realtime</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer.get_status"><code class="docutils literal notranslate"><span class="pre">BaseViewer.get_status()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -690,38 +686,10 @@ document.write(`
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="mjlab.viewer.BaseViewer.request_action">
-<span class="sig-name descname"><span class="pre">request_action</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">payload</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/base.html#BaseViewer.request_action"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.BaseViewer.request_action" title="Link to this definition">#</a></dt>
-<dd><p>Viewer-specific actions (e.g., PREV_ENV/NEXT_ENV for native).</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="mjlab.viewer.BaseViewer.tick">
 <span class="sig-name descname"><span class="pre">tick</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/base.html#BaseViewer.tick"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.BaseViewer.tick" title="Link to this definition">#</a></dt>
-<dd><p>Advance the viewer by one tick.</p>
-<p>Physics and rendering are decoupled: physics steps are governed by a
-sim-time budget (accumulated from wall time * speed multiplier), while
-rendering always happens at the configured <code class="docutils literal notranslate"><span class="pre">frame_rate</span></code>. This keeps
-the display smooth even at slow playback speeds.</p>
+<dd><p>Advance one tick: drain actions, step physics, maybe render.</p>
 <p>Returns True when a render frame was produced, False otherwise.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="mjlab.viewer.BaseViewer.target_realtime">
-<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">target_realtime</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></em><a class="headerlink" href="#mjlab.viewer.BaseViewer.target_realtime" title="Link to this definition">#</a></dt>
-<dd><p>Target realtime factor based on the current speed multiplier.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="mjlab.viewer.BaseViewer.actual_realtime">
-<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">actual_realtime</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></em><a class="headerlink" href="#mjlab.viewer.BaseViewer.actual_realtime" title="Link to this definition">#</a></dt>
-<dd><p>Actual realtime factor based on smoothed steps per second.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="mjlab.viewer.BaseViewer.get_status">
-<span class="sig-name descname"><span class="pre">get_status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ViewerStatus</span></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/base.html#BaseViewer.get_status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.BaseViewer.get_status" title="Link to this definition">#</a></dt>
-<dd><p>Build a read-only status snapshot for viewer UIs.</p>
 </dd></dl>
 
 </dd></dl>
@@ -953,11 +921,7 @@ the display smooth even at slow playback speeds.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#baseviewer">BaseViewer</a><ul class="visible nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer"><code class="docutils literal notranslate"><span class="pre">BaseViewer</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer.__init__"><code class="docutils literal notranslate"><span class="pre">BaseViewer.__init__()</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer.request_action"><code class="docutils literal notranslate"><span class="pre">BaseViewer.request_action()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer.tick"><code class="docutils literal notranslate"><span class="pre">BaseViewer.tick()</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer.target_realtime"><code class="docutils literal notranslate"><span class="pre">BaseViewer.target_realtime</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer.actual_realtime"><code class="docutils literal notranslate"><span class="pre">BaseViewer.actual_realtime</span></code></a></li>
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.viewer.BaseViewer.get_status"><code class="docutils literal notranslate"><span class="pre">BaseViewer.get_status()</span></code></a></li>
 </ul>
 </li>
 </ul>

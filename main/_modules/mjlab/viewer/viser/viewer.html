@@ -410,7 +410,12 @@ document.write(`
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">override</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sim.sim</span><span class="w"> </span><span class="kn">import</span> <span class="n">Simulation</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.viewer.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseViewer</span><span class="p">,</span> <span class="n">EnvProtocol</span><span class="p">,</span> <span class="n">PolicyProtocol</span><span class="p">,</span> <span class="n">VerbosityLevel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.viewer.base</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+  <span class="n">BaseViewer</span><span class="p">,</span>
+  <span class="n">EnvProtocol</span><span class="p">,</span>
+  <span class="n">PolicyProtocol</span><span class="p">,</span>
+  <span class="n">VerbosityLevel</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.viewer.viser.overlays</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
   <span class="n">ViserCameraOverlays</span><span class="p">,</span>
   <span class="n">ViserContactOverlays</span><span class="p">,</span>
@@ -597,10 +602,15 @@ document.write(`
     <span class="bp">self</span><span class="o">.</span><span class="n">_camera_update_last_ms</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1000.0</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">_queue_debug_visualizers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Queue environment-specific debug draw calls into the scene.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Queue environment-specific debug draw calls into the scene.</span>
+
+<span class="sd">    Acquires ``_sim_lock`` so the clear+requeue is atomic with respect</span>
+<span class="sd">    to the background thread that reads the queues in ``scene.update``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_debug_overlays</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_debug_overlays</span><span class="o">.</span><span class="n">queue</span><span class="p">()</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sim_lock</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_debug_overlays</span><span class="o">.</span><span class="n">queue</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_debug_queue_last_ms</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1000.0</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">_submit_scene_update_if_needed</span><span class="p">(</span>
@@ -681,7 +691,14 @@ document.write(`
     <span class="bp">self</span><span class="o">.</span><span class="n">_update_env_dependent_plots</span><span class="p">()</span>
     <span class="n">has_pending_updates</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pending_update_reasons</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">needs_update</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_update_camera_feeds</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">has_pending_updates</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_queue_debug_visualizers</span><span class="p">()</span>
+    <span class="c1"># Queue debug visualizers only when a scene update will actually be</span>
+    <span class="c1"># submitted.  Clearing the queues on skipped ticks creates a race</span>
+    <span class="c1"># with the background thread that causes debug overlays to blink.</span>
+    <span class="n">will_submit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_submit_scene_update</span><span class="p">(</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_counter</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_paused</span><span class="p">,</span> <span class="n">has_pending_updates</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">will_submit</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_queue_debug_visualizers</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_submit_scene_update_if_needed</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">has_pending_updates</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_log_debug_timings</span><span class="p">()</span></div>
 
