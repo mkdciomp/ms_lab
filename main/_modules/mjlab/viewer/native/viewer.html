@@ -502,6 +502,7 @@ document.write(`
     <span class="bp">self</span><span class="o">.</span><span class="n">_show_debug_vis</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_show_all_envs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_plot_cfg</span> <span class="o">=</span> <span class="n">plot_cfg</span> <span class="ow">or</span> <span class="n">PlotCfg</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_figures_dirty</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">env_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">env_idx</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_mj_lock</span> <span class="o">=</span> <span class="n">Lock</span><span class="p">()</span></div>
@@ -577,8 +578,15 @@ document.write(`
       <span class="bp">self</span><span class="o">.</span><span class="n">_sync_model_fields</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">env_idx</span><span class="p">)</span>
       <span class="n">mujoco</span><span class="o">.</span><span class="n">mj_forward</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mjm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mjd</span><span class="p">)</span>
 
+      <span class="c1"># The viewer window can close at any time. Re-check before set_texts</span>
+      <span class="c1"># / set_figures since those use spin-wait sync with the render loop.</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">v</span><span class="o">.</span><span class="n">is_running</span><span class="p">():</span>
+        <span class="k">return</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_set_status_overlay</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">v</span><span class="o">.</span><span class="n">is_running</span><span class="p">():</span>
+        <span class="k">return</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_update_reward_figures</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+
       <span class="bp">self</span><span class="o">.</span><span class="n">_update_debug_visualizers</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_render_other_env_geoms</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">sim_data</span><span class="p">)</span>
 
@@ -608,7 +616,11 @@ document.write(`
 
   <span class="k">def</span><span class="w"> </span><span class="nf">_update_reward_figures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">viewer</span><span class="p">:</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">Handle</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_show_plots</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_term_names</span><span class="p">:</span>
-      <span class="n">viewer</span><span class="o">.</span><span class="n">set_figures</span><span class="p">([])</span>
+      <span class="c1"># Only send an empty set_figures when transitioning from shown to hidden, to</span>
+      <span class="c1"># avoid a spin-wait round trip every frame.</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_figures_dirty</span><span class="p">:</span>
+        <span class="n">viewer</span><span class="o">.</span><span class="n">set_figures</span><span class="p">([])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_figures_dirty</span> <span class="o">=</span> <span class="kc">False</span>
       <span class="k">return</span>
 
     <span class="n">terms</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
@@ -630,6 +642,7 @@ document.write(`
       <span class="p">)</span>
     <span class="p">]</span>
     <span class="n">viewer</span><span class="o">.</span><span class="n">set_figures</span><span class="p">(</span><span class="n">viewport_figs</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_figures_dirty</span> <span class="o">=</span> <span class="kc">True</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">_update_debug_visualizers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">viewer</span><span class="p">:</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">Handle</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">viewer</span><span class="o">.</span><span class="n">user_scn</span><span class="o">.</span><span class="n">ngeom</span> <span class="o">=</span> <span class="mi">0</span>
@@ -733,11 +746,7 @@ document.write(`
     <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">v</span><span class="p">:</span>
-      <span class="k">try</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">is_running</span><span class="p">():</span>
-          <span class="n">v</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-      <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[WARN] Error while closing viewer: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">VerbosityLevel</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+      <span class="n">v</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;[INFO] MuJoCo viewer closed&quot;</span><span class="p">,</span> <span class="n">VerbosityLevel</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span></div>
 
 
