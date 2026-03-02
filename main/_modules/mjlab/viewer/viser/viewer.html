@@ -444,6 +444,7 @@ document.write(`
     <span class="n">policy</span><span class="p">:</span> <span class="n">PolicyProtocol</span><span class="p">,</span>
     <span class="n">frame_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">60.0</span><span class="p">,</span>
     <span class="n">verbosity</span><span class="p">:</span> <span class="n">VerbosityLevel</span> <span class="o">=</span> <span class="n">VerbosityLevel</span><span class="o">.</span><span class="n">SILENT</span><span class="p">,</span>
+    <span class="n">viser_server</span><span class="p">:</span> <span class="n">viser</span><span class="o">.</span><span class="n">ViserServer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
   <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">policy</span><span class="p">,</span> <span class="n">frame_rate</span><span class="p">,</span> <span class="n">verbosity</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_term_overlays</span><span class="p">:</span> <span class="n">ViserTermOverlays</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
@@ -455,7 +456,9 @@ document.write(`
     <span class="bp">self</span><span class="o">.</span><span class="n">_debug_queue_last_ms</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_scene_submit_enqueue_last_ms</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_scene_update_last_ms</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_timing_last_log_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_timing_last_log_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_external_server</span> <span class="o">=</span> <span class="n">viser_server</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_server</span> <span class="o">=</span> <span class="n">viser_server</span> <span class="ow">or</span> <span class="n">viser</span><span class="o">.</span><span class="n">ViserServer</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;mjlab&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ViserPlayViewer.setup">
@@ -466,7 +469,6 @@ document.write(`
     <span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">unwrapped</span><span class="o">.</span><span class="n">sim</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">Simulation</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_server</span> <span class="o">=</span> <span class="n">viser</span><span class="o">.</span><span class="n">ViserServer</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;mjlab&quot;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_threadpool</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_counter</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_pending_update_reasons</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="n">UpdateReason</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
@@ -732,7 +734,8 @@ document.write(`
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_camera_overlays</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_camera_overlays</span><span class="o">.</span><span class="n">cleanup</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_threadpool</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="n">wait</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_external_server</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="ViserPlayViewer.is_running">
