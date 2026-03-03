@@ -514,6 +514,9 @@ across a multi-GPU instance.</p></li>
 (<code class="docutils literal notranslate"><span class="pre">/update-mjwarp</span></code>, <code class="docutils literal notranslate"><span class="pre">/commit-push-pr</span></code>).</p></li>
 <li><p>Added optional <code class="docutils literal notranslate"><span class="pre">ViewerConfig.fovy</span></code> and apply it in native viewer camera
 setup when provided.</p></li>
+<li><p>Native viewer now tracks the first non-fixed body by default (matching
+the Viser viewer behavior introduced in
+<code class="docutils literal notranslate"><span class="pre">716aaaa58ad7bfaf34d2f771549d461204d1b4ba</span></code>).</p></li>
 <li><p>New <code class="docutils literal notranslate"><span class="pre">dr</span></code> module (<code class="docutils literal notranslate"><span class="pre">mjlab.envs.mdp.dr</span></code>) replacing <code class="docutils literal notranslate"><span class="pre">randomize_field</span></code>
 with typed per-field domain randomization functions. Each function
 automatically recomputes derived fields via <code class="docutils literal notranslate"><span class="pre">set_const</span></code>. Highlights:</p>
