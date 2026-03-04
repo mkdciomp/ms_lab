@@ -130,7 +130,7 @@
                       </body>
                     </body>
                   </body>
-                  <body name="camera_d405" pos="-0.0107000 0.0687501 0.0450881" quat="0.6272114 -0.3265056 -0.3265056 -0.6272114">
+                  <body name="camera_d405" pos="-0.01078 0.07745 0.04082" quat="0.6408564 -0.2988362 -0.2988362 -0.6408564">
                     <body name="camera_link" pos="0.01085 0.009 0.021">
                       <geom class="visual" pos="0.0038 -0.009 0" quat="0.5 0.5 0.5 0.5" type="mesh" density="0" mesh="camera_d405"/>
                       <geom class="collision" size="0.0115 0.021 0.021" pos="-0.0078 -0.009 0" type="box" group="4"/>

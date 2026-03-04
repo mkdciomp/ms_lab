@@ -90,10 +90,11 @@ def yam_lift_cube_vision_env_cfg(
   cfg = yam_lift_cube_env_cfg(play=play)
 
   camera_names = ["robot/camera_d405"]
+  # 16:9 aspect ratio.
   cam_kwargs = {
     "robot/camera_d405": {
-      "height": 32,
-      "width": 32,
+      "height": 36,
+      "width": 64,
     },
   }
   shared_cam_kwargs = dict(
