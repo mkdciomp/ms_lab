@@ -147,8 +147,8 @@ HOME_KEYFRAME = EntityCfg.InitialStateCfg(
     "joint2": 1.047,
     "joint3": 1.05,
     "joint4": -0.9,
-    "left_finger": 0.0375 / 2,
-    "right_finger": -0.0375 / 2,
+    "left_finger": 0.0475 / 2,
+    "right_finger": -0.0475 / 2,
   },
   joint_vel={".*": 0.0},
 )
