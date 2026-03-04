@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Sequence
@@ -18,6 +19,7 @@ from mjlab.utils.lab_api.string import resolve_matching_names
 from mjlab.utils.mujoco import dof_width, qpos_width
 from mjlab.utils.spec import auto_wrap_fixed_base_mocap
 from mjlab.utils.string import resolve_expr
+from mjlab.utils.xml import fix_spec_xml, strip_buffer_textures
 
 
 @dataclass(frozen=False)
@@ -483,11 +485,17 @@ class Entity:
 
   def write_xml(self, xml_path: Path) -> None:
     """Write the MjSpec to disk."""
-    with open(xml_path, "w") as f:
-      f.write(self.spec.to_xml())
+    spec = self.spec.copy()
+    strip_buffer_textures(spec)
+    xml_path.write_text(fix_spec_xml(spec.to_xml()))
 
   def to_zip(self, path: Path) -> None:
-    """Write the MjSpec to a zip file."""
+    """Deprecated. Use ``write_xml`` instead."""
+    warnings.warn(
+      "Entity.to_zip() is deprecated. Use Entity.write_xml() instead.",
+      DeprecationWarning,
+      stacklevel=2,
+    )
     with path.open("wb") as f:
       mujoco.MjSpec.to_zip(self.spec, f)
 

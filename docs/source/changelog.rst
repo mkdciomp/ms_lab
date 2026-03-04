@@ -13,6 +13,8 @@ Upcoming version (not yet released)
    - ``EventTermCfg`` no longer accepts ``domain_randomization``. The
      ``@requires_model_fields`` decorator on each ``dr`` function takes care
      of field expansion automatically.
+   - ``Scene.to_zip()`` is deprecated. Use ``Scene.write(path, as_zip=True)``.
+   - ``Entity.to_zip()`` is deprecated. Use ``Entity.write_xml()`` instead.
 
 Added
 ^^^^^
@@ -31,6 +33,9 @@ Added
 - Native viewer now tracks the first non-fixed body by default (matching
   the Viser viewer behavior introduced in
   ``716aaaa58ad7bfaf34d2f771549d461204d1b4ba``).
+- ``export-scene`` CLI script to export any task scene or asset_zoo entity
+  (``g1``, ``go1``, ``yam``) to a directory or zip archive for inspection
+  and debugging.
 - New ``dr`` module (``mjlab.envs.mdp.dr``) replacing ``randomize_field``
   with typed per-field domain randomization functions. Each function
   automatically recomputes derived fields via ``set_const``. Highlights:
@@ -112,6 +117,13 @@ Added
 - Added ``upload_model`` option to ``RslRlBaseRunnerCfg`` to control W&B model
   file uploads (``.pt`` and ``.onnx``) while keeping metric logging enabled
   (`#654 <https://github.com/mujocolab/mjlab/pull/654>`_).
+- ``Scene.write(output_dir, as_zip=False)`` exports the scene XML and mesh
+  assets to a directory (or zip archive). Replaces ``Scene.to_zip()``.
+- ``Entity.write_xml()`` and ``Scene.write()`` now apply XML fixups
+  (empty defaults, duplicate nested defaults) and strip buffer textures
+  that ``MjSpec.to_xml()`` cannot serialize.
+- ``fix_spec_xml`` and ``strip_buffer_textures`` utilities in
+  ``mjlab.utils.xml``.
 
 Changed
 ^^^^^^^

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import shutil
 import warnings
+import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
@@ -16,6 +18,7 @@ from mjlab.sensor.camera_sensor import CameraSensor
 from mjlab.sensor.raycast_sensor import RayCastSensor
 from mjlab.sensor.sensor_context import SensorContext
 from mjlab.terrains.terrain_entity import TerrainEntity, TerrainEntityCfg
+from mjlab.utils.xml import fix_spec_xml, strip_buffer_textures
 
 _SCENE_XML = Path(__file__).parent / "scene.xml"
 
@@ -70,20 +73,47 @@ class Scene:
   def compile(self) -> mujoco.MjModel:
     return self._spec.compile()
 
-  def to_zip(self, path: Path) -> None:
-    """Export the scene to a zip file.
+  def write(self, output_dir: Path, *, as_zip: bool = False) -> None:
+    """Write the scene XML and mesh assets to a directory.
 
-    Warning: The generated zip may require manual adjustment of asset paths
-    to be reloadable. Specifically, you may need to add assetdir="assets"
-    to the compiler directive in the XML.
+    Creates ``scene.xml`` and an ``assets/`` subdirectory containing
+    all mesh files referenced by the spec. When *as_zip* is True the
+    directory is compressed into a ``.zip`` archive and the directory
+    is removed.
 
     Args:
-      path: Output path for the zip file.
-
-    TODO: Verify if this is fixed in future MuJoCo releases.
+      output_dir: Destination directory (created if it doesn't exist).
+      as_zip: If True, produce ``<output_dir>.zip`` instead of a
+        directory.
     """
-    with path.open("wb") as f:
-      mujoco.MjSpec.to_zip(self._spec, f)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    spec = self._spec.copy()
+    strip_buffer_textures(spec)
+    xml = fix_spec_xml(spec.to_xml(), meshdir="assets")
+    (output_dir / "scene.xml").write_text(xml)
+    assets_dir = output_dir / "assets"
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    for name, data in spec.assets.items():
+      clean = name.removeprefix("assets/")
+      path = assets_dir / clean
+      path.parent.mkdir(parents=True, exist_ok=True)
+      path.write_bytes(data)
+    if as_zip:
+      zip_path = output_dir.with_suffix(".zip")
+      with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for file in sorted(output_dir.rglob("*")):
+          if file.is_file():
+            zf.write(file, file.relative_to(output_dir))
+      shutil.rmtree(output_dir)
+
+  def to_zip(self, path: Path) -> None:
+    """Deprecated. Use ``write(output_dir, as_zip=True)`` instead."""
+    warnings.warn(
+      "Scene.to_zip() is deprecated. Use Scene.write(path, as_zip=True).",
+      DeprecationWarning,
+      stacklevel=2,
+    )
+    self.write(path, as_zip=True)
 
   # Attributes.
 
