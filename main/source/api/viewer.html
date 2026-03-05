@@ -59,7 +59,7 @@
     <link rel="prev" title="mjlab.rl" href="rl.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Mar 04, 2026"/>
+    <meta name="docbuild:last-update" content="Mar 05, 2026"/>
   </head>
   
   
@@ -728,7 +728,11 @@ document.write(`
 <dl class="py method">
 <dt class="sig sig-object py" id="mjlab.viewer.NativeMujocoViewer.sync_viewer_to_env">
 <span class="sig-name descname"><span class="pre">sync_viewer_to_env</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/viewer/native/viewer.html#NativeMujocoViewer.sync_viewer_to_env"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.viewer.NativeMujocoViewer.sync_viewer_to_env" title="Link to this definition">#</a></dt>
-<dd><p>Copy perturbation forces from viewer to env.</p>
+<dd><p>Sync mouse perturbation to sim via <code class="docutils literal notranslate"><span class="pre">qfrc_applied</span></code>.</p>
+<p>Mouse perturbation forces are converted from Cartesian body space
+(<code class="docutils literal notranslate"><span class="pre">xfrc_applied</span></code>) to generalized joint space (<code class="docutils literal notranslate"><span class="pre">qfrc_applied</span></code>)
+so that they coexist with programmatic forces on <code class="docutils literal notranslate"><span class="pre">xfrc_applied</span></code>.
+See the module docstring for details on the channel separation.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1015,7 +1019,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Mar 04, 2026.
+  Last updated on Mar 05, 2026.
   <br/>
 </p>
   </div>

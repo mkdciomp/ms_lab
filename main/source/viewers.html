@@ -59,7 +59,7 @@
     <link rel="prev" title="Training with RSL-RL" href="training/rsl_rl.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Mar 04, 2026"/>
+    <meta name="docbuild:last-update" content="Mar 05, 2026"/>
   </head>
   
   
@@ -629,6 +629,12 @@ Click and drag any body in the scene to apply external forces during
 playback. The force transfers into the simulation on the next step,
 making it easy to test balance recovery, grasp robustness, or
 disturbance rejection without writing any code.</p>
+<p>Mouse perturbation forces are kept separate from programmatic forces
+(e.g. <code class="docutils literal notranslate"><span class="pre">apply_body_impulse</span></code>) by routing them through different MuJoCo
+channels: programmatic forces use <code class="docutils literal notranslate"><span class="pre">xfrc_applied</span></code> (Cartesian body
+forces), while mouse forces are converted to <code class="docutils literal notranslate"><span class="pre">qfrc_applied</span></code>
+(generalized joint forces) via <code class="docutils literal notranslate"><span class="pre">mj_applyFT</span></code>. Both channels are summed
+during forward dynamics, so they coexist without conflict.</p>
 <p><strong>Domain randomization visualization.</strong>
 The native viewer syncs all visual DR fields from GPU to CPU each
 frame. Randomized geom colors, sizes, positions, material colors,
@@ -877,7 +883,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Mar 04, 2026.
+  Last updated on Mar 05, 2026.
   <br/>
 </p>
   </div>
