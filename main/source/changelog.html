@@ -603,6 +603,10 @@ file uploads (<code class="docutils literal notranslate"><span class="pre">.pt</
 arrows for any nonzero applied forces. Mouse perturbation forces are
 converted to <code class="docutils literal notranslate"><span class="pre">qfrc_applied</span></code> (generalized joint space) so they coexist
 with programmatic forces on <code class="docutils literal notranslate"><span class="pre">xfrc_applied</span></code> without conflict.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ViewerConfig.OriginType.WORLD</span></code> now configures a free camera at the
+specified lookat point instead of auto tracking a body. A new <code class="docutils literal notranslate"><span class="pre">AUTO</span></code>
+origin type (now the default) preserves the previous auto tracking
+behavior.</p></li>
 <li><p>Reorganized the Viser Controls tab into a cleaner folder hierarchy:
 Info, Simulation, Commands, Scene (with Environment, Camera, Debug Viz,
 Contacts sub-folders), and Camera Feeds. The Environment folder is

@@ -918,8 +918,10 @@ document.write(`
       <span class="bp">self</span><span class="o">.</span><span class="n">_set_camera_auto_track</span><span class="p">()</span>
       <span class="k">return</span>
 
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">origin_type</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">OriginType</span><span class="o">.</span><span class="n">WORLD</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">origin_type</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">OriginType</span><span class="o">.</span><span class="n">AUTO</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_set_camera_auto_track</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">origin_type</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">OriginType</span><span class="o">.</span><span class="n">WORLD</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_set_camera_world</span><span class="p">()</span>
     <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">origin_type</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">OriginType</span><span class="o">.</span><span class="n">ASSET_ROOT</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_set_camera_asset_root</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>  <span class="c1"># ASSET_BODY</span>
