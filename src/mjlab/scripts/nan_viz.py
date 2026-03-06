@@ -40,6 +40,11 @@ class NanDumpViewer:
       [k for k in self.dump.keys() if k.startswith("states_step_")],
       key=lambda x: int(x.split("_")[-1]),
     )
+    self.mocap_keys = sorted(
+      [k for k in self.dump.keys() if k.startswith("mocap_step_")],
+      key=lambda x: int(x.split("_")[-1]),
+    )
+    self.has_mocap = len(self.mocap_keys) > 0
     self.num_steps = len(self.state_keys)
     self.num_envs_dumped = self.metadata["num_envs_dumped"]
     self.dumped_env_ids = self.metadata["dumped_env_ids"]
@@ -128,6 +133,15 @@ class NanDumpViewer:
 
     # Set state and compute derived quantities.
     mujoco.mj_setState(self.model, self.data, state, mujoco.mjtState.mjSTATE_PHYSICS)
+
+    # Restore mocap body poses if available.
+    if self.has_mocap and self.current_step < len(self.mocap_keys):
+      mocap_key = self.mocap_keys[self.current_step]
+      mocap = self.dump[mocap_key][self.current_env]
+      nmocap = self.model.nmocap
+      self.data.mocap_pos[:] = mocap[: nmocap * 3].reshape(nmocap, 3)
+      self.data.mocap_quat[:] = mocap[nmocap * 3 :].reshape(nmocap, 4)
+
     mujoco.mj_forward(self.model, self.data)
 
     # Update scene from single-environment MuJoCo data.

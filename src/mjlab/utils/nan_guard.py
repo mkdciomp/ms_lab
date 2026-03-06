@@ -46,6 +46,7 @@ class NanGuard:
     self._dumped = False
 
     self.state_size = mujoco.mj_stateSize(mj_model, mujoco.mjtState.mjSTATE_PHYSICS)
+    self.has_mocap = mj_model.nmocap > 0
     self.mj_model = mj_model
     self.mj_data = mujoco.MjData(mj_model)
 
@@ -61,6 +62,9 @@ class NanGuard:
     }
     if self.mj_model.na > 0:
       state["act"] = wp_data.act.clone()
+    if self.has_mocap:
+      state["mocap_pos"] = wp_data.mocap_pos.clone()
+      state["mocap_quat"] = wp_data.mocap_quat.clone()
 
     self.buffer.append(state)
     self.step_counter += 1
@@ -137,19 +141,39 @@ class NanGuard:
       qpos = item["qpos"]
       qvel = item["qvel"]
       act = item.get("act", None)
+      mocap_pos = item.get("mocap_pos", None)
+      mocap_quat = item.get("mocap_quat", None)
 
       states = np.empty((len(envs_to_dump), self.state_size))
+      mocap_states = None
+      if mocap_pos is not None:
+        # nmocap * (3 pos + 4 quat) = nmocap * 7
+        mocap_states = np.empty((len(envs_to_dump), self.mj_model.nmocap * 7))
+
       for idx, env_id in enumerate(envs_to_dump):
         self.mj_data.qpos[:] = qpos[env_id].cpu().numpy()
         self.mj_data.qvel[:] = qvel[env_id].cpu().numpy()
         if act is not None:
           self.mj_data.act[:] = act[env_id].cpu().numpy()
+        if mocap_pos is not None:
+          self.mj_data.mocap_pos[:] = mocap_pos[env_id].cpu().numpy()
+          self.mj_data.mocap_quat[:] = mocap_quat[env_id].cpu().numpy()
 
         mujoco.mj_getState(
           self.mj_model, self.mj_data, states[idx], mujoco.mjtState.mjSTATE_PHYSICS
         )
 
+        if mocap_states is not None:
+          mocap_states[idx] = np.concatenate(
+            [
+              self.mj_data.mocap_pos.flatten(),
+              self.mj_data.mocap_quat.flatten(),
+            ]
+          )
+
       data[f"states_step_{step:06d}"] = states
+      if mocap_states is not None:
+        data[f"mocap_step_{step:06d}"] = mocap_states
 
     data["_metadata"] = np.array(
       {
