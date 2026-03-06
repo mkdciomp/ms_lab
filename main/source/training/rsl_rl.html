@@ -628,15 +628,11 @@ Unitree G1 velocity task shows a typical configuration:</p>
             <span class="n">hidden_dims</span><span class="o">=</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span>
             <span class="n">activation</span><span class="o">=</span><span class="s2">&quot;elu&quot;</span><span class="p">,</span>
             <span class="n">obs_normalization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">stochastic</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">init_noise_std</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="n">critic</span><span class="o">=</span><span class="n">RslRlModelCfg</span><span class="p">(</span>
             <span class="n">hidden_dims</span><span class="o">=</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span>
             <span class="n">activation</span><span class="o">=</span><span class="s2">&quot;elu&quot;</span><span class="p">,</span>
             <span class="n">obs_normalization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">stochastic</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">init_noise_std</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="n">algorithm</span><span class="o">=</span><span class="n">RslRlPpoAlgorithmCfg</span><span class="p">(</span>
             <span class="n">value_loss_coef</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>

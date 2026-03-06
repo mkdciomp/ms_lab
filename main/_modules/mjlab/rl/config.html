@@ -413,17 +413,19 @@ document.write(`
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;The activation function.&quot;&quot;&quot;</span>
   <span class="n">obs_normalization</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Whether to normalize the observations. Default is False.&quot;&quot;&quot;</span>
-  <span class="n">init_noise_std</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;The initial noise standard deviation.&quot;&quot;&quot;</span>
-  <span class="n">noise_std_type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;scalar&quot;</span><span class="p">,</span> <span class="s2">&quot;log&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;scalar&quot;</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;The type of noise standard deviation.&quot;&quot;&quot;</span>
-  <span class="n">stochastic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;Whether the model output is stochastic.&quot;&quot;&quot;</span>
   <span class="n">cnn_cfg</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;CNN encoder config. When set, class_name should be &quot;CNNModel&quot;.</span>
 
 <span class="sd">  Passed to ``rsl_rl.modules.CNN``. Common keys: output_channels,</span>
 <span class="sd">  kernel_size, stride, padding, activation, global_pool, max_pool.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">distribution_cfg</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Distribution config dict passed to rsl_rl. Example::</span>
+
+<span class="sd">    {&quot;class_name&quot;: &quot;GaussianDistribution&quot;,</span>
+<span class="sd">     &quot;init_std&quot;: 1.0, &quot;std_type&quot;: &quot;scalar&quot;}</span>
+
+<span class="sd">  ``None`` means deterministic output (use for critic).</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">class_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;MLPModel&quot;</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Model class name resolved by RSL-RL (MLPModel or CNNModel).&quot;&quot;&quot;</span></div>
@@ -528,9 +530,17 @@ document.write(`
 <span class="k">class</span><span class="w"> </span><span class="nc">RslRlOnPolicyRunnerCfg</span><span class="p">(</span><span class="n">RslRlBaseRunnerCfg</span><span class="p">):</span>
   <span class="n">class_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;OnPolicyRunner&quot;</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;The runner class name. Default is OnPolicyRunner.&quot;&quot;&quot;</span>
-  <span class="n">actor</span><span class="p">:</span> <span class="n">RslRlModelCfg</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">RslRlModelCfg</span><span class="p">(</span><span class="n">stochastic</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+  <span class="n">actor</span><span class="p">:</span> <span class="n">RslRlModelCfg</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+    <span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">RslRlModelCfg</span><span class="p">(</span>
+      <span class="n">distribution_cfg</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;class_name&quot;</span><span class="p">:</span> <span class="s2">&quot;GaussianDistribution&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;init_std&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s2">&quot;std_type&quot;</span><span class="p">:</span> <span class="s2">&quot;scalar&quot;</span><span class="p">,</span>
+      <span class="p">}</span>
+    <span class="p">)</span>
+  <span class="p">)</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;The actor configuration.&quot;&quot;&quot;</span>
-  <span class="n">critic</span><span class="p">:</span> <span class="n">RslRlModelCfg</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">RslRlModelCfg</span><span class="p">(</span><span class="n">stochastic</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+  <span class="n">critic</span><span class="p">:</span> <span class="n">RslRlModelCfg</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">RslRlModelCfg</span><span class="p">)</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;The critic configuration.&quot;&quot;&quot;</span>
   <span class="n">algorithm</span><span class="p">:</span> <span class="n">RslRlPpoAlgorithmCfg</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">RslRlPpoAlgorithmCfg</span><span class="p">)</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;The algorithm configuration.&quot;&quot;&quot;</span></div>

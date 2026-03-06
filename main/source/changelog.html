@@ -500,6 +500,11 @@ from the new <code class="docutils literal notranslate"><span class="pre">dr</sp
 <code class="docutils literal notranslate"><span class="pre">&#64;requires_model_fields</span></code> decorator on each <code class="docutils literal notranslate"><span class="pre">dr</span></code> function takes care
 of field expansion automatically.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Scene.to_zip()</span></code> is deprecated. Use <code class="docutils literal notranslate"><span class="pre">Scene.write(path,</span> <span class="pre">zip=True)</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RslRlModelCfg</span></code> no longer accepts <code class="docutils literal notranslate"><span class="pre">stochastic</span></code>, <code class="docutils literal notranslate"><span class="pre">init_noise_std</span></code>,
+or <code class="docutils literal notranslate"><span class="pre">noise_std_type</span></code>. Use <code class="docutils literal notranslate"><span class="pre">distribution_cfg</span></code> instead
+(e.g. <code class="docutils literal notranslate"><span class="pre">{&quot;class_name&quot;:</span> <span class="pre">&quot;GaussianDistribution&quot;,</span> <span class="pre">&quot;init_std&quot;:</span> <span class="pre">1.0,</span>
+<span class="pre">&quot;std_type&quot;:</span> <span class="pre">&quot;scalar&quot;}</span></code>). Existing checkpoints are automatically
+migrated on load.</p></li>
 </ul>
 </div>
 <section id="added">
@@ -619,6 +624,10 @@ with programmatic forces on <code class="docutils literal notranslate"><span cla
 specified lookat point instead of auto tracking a body. A new <code class="docutils literal notranslate"><span class="pre">AUTO</span></code>
 origin type (now the default) preserves the previous auto tracking
 behavior.</p></li>
+<li><p>Upgraded <code class="docutils literal notranslate"><span class="pre">rsl-rl-lib</span></code> from 4.0.1 to 5.0.1. <code class="docutils literal notranslate"><span class="pre">RslRlModelCfg</span></code> now
+uses <code class="docutils literal notranslate"><span class="pre">distribution_cfg</span></code> dict instead of <code class="docutils literal notranslate"><span class="pre">stochastic</span></code> /
+<code class="docutils literal notranslate"><span class="pre">init_noise_std</span></code> / <code class="docutils literal notranslate"><span class="pre">noise_std_type</span></code>. Existing checkpoints are
+automatically migrated on load.</p></li>
 <li><p>Reorganized the Viser Controls tab into a cleaner folder hierarchy:
 Info, Simulation, Commands, Scene (with Environment, Camera, Debug Viz,
 Contacts sub-folders), and Camera Feeds. The Environment folder is
