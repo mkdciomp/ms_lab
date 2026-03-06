@@ -12,11 +12,12 @@ import torch
 from mjlab import actuator
 from mjlab.actuator import BuiltinActuatorGroup
 from mjlab.actuator.actuator import TransmissionType
+from mjlab.actuator.builtin_actuator import BuiltinPositionActuatorCfg
 from mjlab.entity.data import EntityData
 from mjlab.utils import spec_config as spec_cfg
 from mjlab.utils.lab_api.string import resolve_matching_names
 from mjlab.utils.mujoco import dof_width, qpos_width
-from mjlab.utils.spec import auto_wrap_fixed_base_mocap
+from mjlab.utils.spec import auto_wrap_fixed_base_mocap, resolve_dampratio_at_keyframe
 from mjlab.utils.string import resolve_expr
 from mjlab.utils.xml import fix_spec_xml, strip_buffer_textures
 
@@ -479,8 +480,28 @@ class Entity:
     return resolve_matching_names(name_keys, material_subset, preserve_order)
 
   def compile(self) -> mujoco.MjModel:
-    """Compile the underlying MjSpec into an MjModel."""
-    return self.spec.compile()
+    """Compile the underlying MjSpec into an MjModel.
+
+    If any actuators use ``dampratio`` with ``dampratio_reference="keyframe"``,
+    resolves the damping coefficient using the mass matrix at the keyframe
+    configuration rather than ``qpos0``.
+    """
+    keyframe_dampratio: dict[str, tuple[float, float]] = {}
+    for act in self._actuators:
+      if (
+        isinstance(act.cfg, BuiltinPositionActuatorCfg)
+        and act.cfg.dampratio is not None
+        and act.cfg.dampratio_reference == "keyframe"
+      ):
+        for mjs_act in act._mjs_actuators:
+          keyframe_dampratio[mjs_act.name] = (act.cfg.stiffness, act.cfg.dampratio)
+
+    mj_model = self.spec.compile()
+
+    if keyframe_dampratio:
+      resolve_dampratio_at_keyframe(mj_model, "init_state", keyframe_dampratio)
+
+    return mj_model
 
   def write_xml(self, xml_path: Path) -> None:
     """Write the MjSpec to disk.

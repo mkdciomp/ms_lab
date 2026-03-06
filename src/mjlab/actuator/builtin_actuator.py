@@ -7,7 +7,7 @@ created programmatically via the MjSpec API.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import mujoco
 import torch
@@ -36,17 +36,44 @@ class BuiltinPositionActuatorCfg(ActuatorCfg):
   Under the hood, this creates a <position> actuator for each target and sets
   the stiffness, damping and effort limits accordingly. It also modifies the target's
   properties, namely armature and frictionloss.
+
+  Damping can be specified as either a raw coefficient (``damping``) or
+  as a dimensionless damping ratio (``dampratio``). Exactly one must be
+  provided. A ``dampratio`` of 1.0 gives critical damping; values above
+  1.0 are overdamped. When ``dampratio`` is used, the actual damping
+  coefficient is computed from the stiffness and effective inertia at
+  the joint (armature plus subtree body inertia).
   """
 
   stiffness: float
   """PD proportional gain."""
-  damping: float
-  """PD derivative gain."""
+  damping: float | None = None
+  """PD derivative gain. Mutually exclusive with ``dampratio``."""
+  dampratio: float | None = None
+  """Damping ratio (1.0 = critically damped). Mutually exclusive with
+  ``damping``."""
+  dampratio_reference: Literal["keyframe", "qpos0"] = "keyframe"
+  """Configuration at which to resolve dampratio to a damping coefficient.
+
+  - ``"keyframe"``: resolve at the ``InitialStateCfg`` joint
+    configuration, giving a more accurate effective inertia estimate
+    at the actual operating point.
+  - ``"qpos0"``: resolve at the default ``qpos0`` (typically all zeros),
+    matching vanilla MuJoCo behavior.
+
+  Only used when ``dampratio`` is set; ignored when ``damping`` is used.
+  """
   effort_limit: float | None = None
   """Maximum actuator force/torque. If None, no limit is applied."""
 
   def __post_init__(self) -> None:
     super().__post_init__()
+    if self.damping is not None and self.dampratio is not None:
+      raise ValueError(
+        "damping and dampratio are mutually exclusive; specify exactly one."
+      )
+    if self.damping is None and self.dampratio is None:
+      raise ValueError("Either damping or dampratio must be specified.")
     if self.transmission_type == TransmissionType.SITE:
       raise ValueError(
         "BuiltinPositionActuatorCfg does not support SITE transmission. "
@@ -72,13 +99,19 @@ class BuiltinPositionActuator(Actuator[BuiltinPositionActuatorCfg]):
     super().__init__(cfg, entity, target_ids, target_names)
 
   def edit_spec(self, spec: mujoco.MjSpec, target_names: list[str]) -> None:
-    # Add <position> actuator to spec, one per target.
+    # When dampratio_reference="keyframe", we resolve dampratio ourselves
+    # in Entity.compile() using the mass matrix at the keyframe config.
+    # Pass kv=0 as placeholder so MuJoCo doesn't resolve it at qpos0.
+    use_keyframe = (
+      self.cfg.dampratio is not None and self.cfg.dampratio_reference == "keyframe"
+    )
     for target_name in target_names:
       actuator = create_position_actuator(
         spec,
         target_name,
         stiffness=self.cfg.stiffness,
-        damping=self.cfg.damping,
+        damping=self.cfg.damping if not use_keyframe else None,
+        dampratio=self.cfg.dampratio if not use_keyframe else None,
         effort_limit=self.cfg.effort_limit,
         armature=self.cfg.armature,
         frictionloss=self.cfg.frictionloss,

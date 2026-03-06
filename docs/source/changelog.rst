@@ -18,6 +18,12 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``dampratio`` support to ``BuiltinPositionActuatorCfg`` as an
+  alternative to raw ``damping``. A ``dampratio`` of 1.0 gives critical
+  damping; the actual coefficient is computed from stiffness and
+  effective inertia at the joint. The new ``dampratio_reference`` field
+  (default ``"keyframe"``) controls whether resolution uses the
+  ``InitialStateCfg`` configuration or the default ``qpos0``.
 - Added ``"step"`` event mode that fires every environment step.
 - Added ``apply_body_impulse`` event for applying transient external wrenches
   to bodies with configurable duration and optional application point offset.

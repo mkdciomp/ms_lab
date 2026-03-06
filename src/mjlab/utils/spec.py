@@ -144,29 +144,55 @@ def create_position_actuator(
   joint_name: str,
   *,
   stiffness: float,
-  damping: float,
+  damping: float | None = None,
+  dampratio: float | None = None,
   effort_limit: float | None = None,
   armature: float = 0.0,
   frictionloss: float = 0.0,
   transmission_type: TransmissionType = TransmissionType.JOINT,
 ) -> mujoco.MjsActuator:
-  """Creates a <position> actuator.
+  """Create a ``<position>`` actuator on the given spec.
 
-  An important note about this actuator is that we set `ctrllimited` to False. This is
-  because we want to allow the policy to output setpoints that are outside the kinematic
-  limits of the joint.
+  The control input is a setpoint, not necessarily a desired joint
+  angle. MuJoCo computes the effort as ``kp * (ctrl - q) - kv * qdot``, where ``kp`` is
+  ``stiffness`` and ``kv`` is the damping coefficient. With low gains, this behaves
+  more like a soft torque interface than a hard position servo: the policy can output
+  setpoints well outside the kinematic joint limits to modulate the applied torque.
+  ``ctrllimited`` is set to ``False`` to allow this.
+
+  Damping can be specified in two ways (exactly one must be provided):
+
+  - ``damping``: raw derivative gain (``kv``). Stored directly.
+  - ``dampratio``: dimensionless ratio passed to MuJoCo's ``set_to_position``, which
+    resolves it to a ``kv`` at compile time using the effective inertia at ``qpos0``. See
+    the *Damping ratio* section in the actuator docs for details.
+
+  If neither is provided, ``kv`` defaults to 0 (no damping). This is used internally
+  when ``BuiltinPositionActuatorCfg`` resolves ``dampratio`` at the keyframe
+  configuration instead of ``qpos0``.
+
+  Args:
+    spec: The MjSpec to add the actuator to.
+    joint_name: Name of the target joint (also used as actuator name).
+    stiffness: Proportional gain (``kp``).
+    damping: Derivative gain (``kv``). Mutually exclusive with ``dampratio``.
+    dampratio: Dimensionless damping ratio (1.0 = critical). Mutually exclusive with
+      ``damping``.
+    effort_limit: Symmetric force limit. If ``None``, unlimited.
+    armature: Reflected rotor inertia added to the target.
+    frictionloss: Dry friction (stiction) on the target.
+    transmission_type: Target type (joint, tendon, or site).
   """
   actuator = spec.add_actuator(name=joint_name, target=joint_name)
 
   actuator.trntype = _TRANSMISSION_TYPE_MAP[transmission_type]
   actuator.dyntype = mujoco.mjtDyn.mjDYN_NONE
-  actuator.gaintype = mujoco.mjtGain.mjGAIN_FIXED
-  actuator.biastype = mujoco.mjtBias.mjBIAS_AFFINE
 
-  # Set stiffness and damping.
-  actuator.gainprm[0] = stiffness
-  actuator.biasprm[1] = -stiffness
-  actuator.biasprm[2] = -damping
+  # set_to_position handles gaintype, biastype, gainprm, and biasprm.
+  if dampratio is not None:
+    actuator.set_to_position(kp=stiffness, dampratio=dampratio)
+  else:
+    actuator.set_to_position(kp=stiffness, kv=damping if damping is not None else 0.0)
 
   # Limits.
   actuator.ctrllimited = False
@@ -187,6 +213,36 @@ def create_position_actuator(
     spec.tendon(joint_name).frictionloss = frictionloss
 
   return actuator
+
+
+def resolve_dampratio_at_keyframe(
+  mj_model: mujoco.MjModel,
+  keyframe_name: str,
+  actuators: dict[str, tuple[float, float]],
+) -> None:
+  """Resolve dampratio for selected actuators using a keyframe config.
+
+  Evaluates the mass matrix at the named keyframe and computes
+  ``kd = dampratio * 2 * sqrt(kp * M_diag[dof])`` for each actuator, writing the result
+  into ``actuator_biasprm[i, 2]``.
+
+  Args:
+    mj_model: Compiled MjModel (modified in place).
+    keyframe_name: Name of the keyframe whose qpos to use.
+    actuators: Map from actuator name to ``(stiffness, dampratio)``.
+  """
+  mj_data = mujoco.MjData(mj_model)
+  mj_data.qpos[:] = mj_model.key(keyframe_name).qpos
+  mujoco.mj_forward(mj_model, mj_data)
+
+  M = np.zeros((mj_model.nv, mj_model.nv))
+  mujoco.mj_fullM(mj_model, M, mj_data.qM)
+
+  for act_name, (kp, ratio) in actuators.items():
+    act = mj_model.actuator(act_name)
+    dof = mj_model.joint(act.trnid[0]).dofadr[0]
+    kd = ratio * 2.0 * np.sqrt(kp * M[dof, dof])
+    act.biasprm[2] = -kd
 
 
 def create_velocity_actuator(

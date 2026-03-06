@@ -1,5 +1,6 @@
 """Unitree G1 constants."""
 
+from dataclasses import replace
 from pathlib import Path
 
 import mujoco
@@ -270,17 +271,41 @@ G1_ARTICULATION = EntityArticulationInfoCfg(
 )
 
 
-def get_g1_robot_cfg() -> EntityCfg:
+def _with_dampratio(
+  cfg: BuiltinPositionActuatorCfg,
+  ratio: float,
+) -> BuiltinPositionActuatorCfg:
+  """Return a copy of cfg using dampratio instead of raw damping."""
+  return replace(cfg, damping=None, dampratio=ratio)
+
+
+def get_g1_robot_cfg(
+  *,
+  dampratio: float | None = None,
+) -> EntityCfg:
   """Get a fresh G1 robot configuration instance.
 
-  Returns a new EntityCfg instance each time to avoid mutation issues when
-  the config is shared across multiple places.
+  Args:
+    dampratio: If set, replace raw damping on all actuators with this damping ratio
+      (resolved at the keyframe configuration). A value of 1.0 gives critical damping;
+      the default ``None`` keeps the existing manually computed damping coefficients.
   """
+  articulation = G1_ARTICULATION
+  if dampratio is not None:
+    articulation = EntityArticulationInfoCfg(
+      actuators=tuple(
+        _with_dampratio(a, dampratio)
+        if isinstance(a, BuiltinPositionActuatorCfg)
+        else a
+        for a in G1_ARTICULATION.actuators
+      ),
+      soft_joint_pos_limit_factor=G1_ARTICULATION.soft_joint_pos_limit_factor,
+    )
   return EntityCfg(
     init_state=KNEES_BENT_KEYFRAME,
     collisions=(FULL_COLLISION,),
     spec_fn=get_spec,
-    articulation=G1_ARTICULATION,
+    articulation=articulation,
   )
 
 

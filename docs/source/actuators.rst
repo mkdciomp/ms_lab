@@ -327,6 +327,90 @@ See :ref:`actions` for how action terms route policy outputs to actuators
 :ref:`domain_randomization` for randomizing gains and effort limits.
 
 
+Damping ratio
+--------------
+
+MuJoCo's `dampratio <https://mujoco.readthedocs.io/en/stable/XMLreference.html#actuator-position-dampratio>`_
+lets you specify damping as a dimensionless ratio instead of a raw
+coefficient. A ``dampratio`` of 1.0 gives critical damping; values
+above 1.0 are overdamped.
+
+Under the hood, MuJoCo computes the effective inertia that the actuator
+sees through its transmission:
+
+.. math::
+
+   M_\mathrm{eff} = \sum_j \frac{M_0[j]}{T[j]^2}
+
+where :math:`M_0` is ``dof_M0`` (the diagonal of the joint space mass
+matrix), :math:`T` is the actuator transmission (gear), and the sum is
+over all DOFs the actuator affects. For the common case of a single
+joint with gear 1, this simplifies to ``dof_M0[dof]``. Intuitively,
+:math:`M_\mathrm{eff}` is the total inertia the actuator "feels" when
+it tries to accelerate the joint: the motor's own rotor inertia
+(armature) plus the mass of every body outboard of the joint, projected
+onto the joint axis and scaled by the gear ratio. The damping
+coefficient is then:
+
+.. math::
+
+   k_d = \mathrm{dampratio} \times 2 \sqrt{k_p \times M_\mathrm{eff}}
+
+This is an approximation. ``dof_M0`` uses only the diagonal of the mass
+matrix (ignoring coupling between DOFs), and it is evaluated at a single
+reference configuration (see ``dampratio_reference`` below). At other
+configurations the effective inertia may differ.
+
+There are three ways to use ``dampratio`` in mjlab, depending on how you
+author your actuators.
+
+**1. Config driven (recommended).** Use the ``dampratio`` field on
+``BuiltinPositionActuatorCfg``. This is the only path that supports
+resolving at the keyframe configuration.
+
+.. code-block:: python
+
+    from mjlab.actuator import BuiltinPositionActuatorCfg
+
+    BuiltinPositionActuatorCfg(
+        target_names_expr=(".*",),
+        stiffness=100.0,
+        dampratio=1.0,                   # critically damped
+        dampratio_reference="keyframe",  # default
+    )
+
+The ``dampratio_reference`` field controls which joint configuration is
+used to evaluate the mass matrix:
+
+- ``"keyframe"`` (default): evaluates the mass matrix at the
+  ``InitialStateCfg`` joint configuration. This gives a more accurate
+  effective inertia when the robot's operating point differs from the zero
+  configuration (e.g., a humanoid standing pose vs. the flat T-pose in
+  ``qpos0``).
+- ``"qpos0"``: evaluates at the default ``qpos0`` (typically all zeros),
+  matching vanilla MuJoCo behavior.
+
+The distinction matters because the mass matrix is configuration
+dependent, so ``dof_M0`` evaluated at ``qpos0`` can differ from
+``dof_M0`` evaluated at the keyframe.
+
+**2. XML actuators.** If your MJCF already contains
+``<position ... dampratio="1.0"/>``, MuJoCo resolves it at ``qpos0``
+during compilation. mjlab does not modify the result. There is no
+keyframe option in this path.
+
+**3. Custom spec_fn.** Calling
+``act.set_to_position(kp=100, dampratio=1.0)`` inside a custom
+``spec_fn`` behaves the same as path 2: MuJoCo resolves at ``qpos0``.
+
+.. note::
+
+     Only the config driven path (``BuiltinPositionActuatorCfg``) supports
+     keyframe resolution. XML actuators and custom ``spec_fn`` always
+     resolve at ``qpos0``. If you need keyframe resolution with a custom
+     model, use the config driven path.
+
+
 Computing hardware parameters
 ------------------------------
 
@@ -374,50 +458,19 @@ appropriate control gains from hardware datasheets.
         effort_limit=88.0,     # N*m continuous torque
     )
 
-    # Derive PD gains from natural frequency and damping ratio.
-    NATURAL_FREQ = 10 * 2*pi  # 10 Hz bandwidth.
-    DAMPING_RATIO = 2.0       # Overdamped, see note below.
-    STIFFNESS = ARMATURE_7520_14 * NATURAL_FREQ**2
-    DAMPING = 2 * DAMPING_RATIO * ARMATURE_7520_14 * NATURAL_FREQ
-
     # Use in actuator config.
     from mjlab.actuator import BuiltinPositionActuatorCfg
 
     actuator = BuiltinPositionActuatorCfg(
         target_names_expr=(".*_hip_pitch_joint",),
-        stiffness=STIFFNESS,
-        damping=DAMPING,
+        stiffness=100.0,
+        dampratio=1.0,
         effort_limit=ACTUATOR_7520_14.effort_limit,
         armature=ACTUATOR_7520_14.reflected_inertia,
     )
 
-.. note::
-
-     The example uses ``DAMPING_RATIO = 2.0``
-     (overdamped) rather than the critically damped value of 1.0. This is
-     because the reflected inertia calculation only accounts for the motor's
-     rotor inertia, not the apparent inertia of the links being moved. In
-     practice, the total effective inertia at the joint is higher than just
-     the reflected motor inertia, so using an overdamped ratio provides
-     better stability margins when the true system inertia is
-     underestimated.
-
-**Parallel linkage approximation:**
-
-For joints driven by parallel linkages (like the G1's ankles with dual
-motors), the effective armature in the nominal configuration can be
-approximated as the sum of the individual motor armatures:
-
-.. code-block:: python
-
-    # Two 5020 motors driving ankle through parallel linkage.
-    G1_ACTUATOR_ANKLE = BuiltinPositionActuatorCfg(
-        target_names_expr=(".*_ankle_pitch_joint", ".*_ankle_roll_joint"),
-        stiffness=STIFFNESS_5020 * 2,
-        damping=DAMPING_5020 * 2,
-        effort_limit=ACTUATOR_5020.effort_limit * 2,
-        armature=ACTUATOR_5020.reflected_inertia * 2,
-    )
+See `Damping ratio`_ for how ``dampratio`` computes the damping
+coefficient from the effective inertia at the joint.
 
 
 Extending: custom actuators
