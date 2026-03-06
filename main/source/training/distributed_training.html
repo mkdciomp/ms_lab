@@ -59,7 +59,7 @@
     <link rel="prev" title="Viewers" href="../viewers.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Mar 05, 2026"/>
+    <meta name="docbuild:last-update" content="Mar 06, 2026"/>
   </head>
   
   
@@ -483,10 +483,10 @@ GPU count.</p>
 <section id="usage">
 <h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">#</a></h2>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Single GPU (default).</span>
-uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </span>&lt;task-name&gt;<span class="w"> </span>--gpu-ids<span class="w"> </span><span class="m">0</span>
+uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </span>&lt;task-name&gt;<span class="w"> </span>--gpu-ids<span class="w"> </span><span class="s2">&quot;[0]&quot;</span>
 
 <span class="c1"># Two GPUs.</span>
-uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </span>&lt;task-name&gt;<span class="w"> </span>--gpu-ids<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">1</span>
+uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </span>&lt;task-name&gt;<span class="w"> </span>--gpu-ids<span class="w"> </span><span class="s2">&quot;[0, 1]&quot;</span>
 
 <span class="c1"># All available GPUs.</span>
 uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </span>&lt;task-name&gt;<span class="w"> </span>--gpu-ids<span class="w"> </span>all
@@ -498,7 +498,7 @@ uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </spa
 <p>Key points:</p>
 <ul class="simple">
 <li><p>GPU indices are relative to <code class="docutils literal notranslate"><span class="pre">CUDA_VISIBLE_DEVICES</span></code> if set. For example,
-<code class="docutils literal notranslate"><span class="pre">CUDA_VISIBLE_DEVICES=2,3</span> <span class="pre">uv</span> <span class="pre">run</span> <span class="pre">train</span> <span class="pre">...</span> <span class="pre">--gpu-ids</span> <span class="pre">0</span> <span class="pre">1</span></code> uses physical
+<code class="docutils literal notranslate"><span class="pre">CUDA_VISIBLE_DEVICES=2,3</span> <span class="pre">uv</span> <span class="pre">run</span> <span class="pre">train</span> <span class="pre">...</span> <span class="pre">--gpu-ids</span> <span class="pre">&quot;[0,</span> <span class="pre">1]&quot;</span></code> uses physical
 GPUs 2 and 3.</p></li>
 <li><p>Single-GPU and CPU modes run directly without torchrunx.</p></li>
 </ul>
@@ -555,13 +555,13 @@ logs to avoid race conditions.</p>
 <p>By default, torchrunx process logs are saved to <code class="docutils literal notranslate"><span class="pre">{log_dir}/torchrunx/</span></code>.
 This can be customized:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Disable torchrunx file logging.</span>
-uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </span>&lt;task-name&gt;<span class="w"> </span>--gpu-ids<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">1</span><span class="w"> </span>--torchrunx-log-dir<span class="w"> </span><span class="s2">&quot;&quot;</span>
+uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </span>&lt;task-name&gt;<span class="w"> </span>--gpu-ids<span class="w"> </span><span class="s2">&quot;[0, 1]&quot;</span><span class="w"> </span>--torchrunx-log-dir<span class="w"> </span><span class="s2">&quot;&quot;</span>
 
 <span class="c1"># Custom log directory.</span>
-uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </span>&lt;task-name&gt;<span class="w"> </span>--gpu-ids<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">1</span><span class="w"> </span>--torchrunx-log-dir<span class="w"> </span>/path/to/logs
+uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </span>&lt;task-name&gt;<span class="w"> </span>--gpu-ids<span class="w"> </span><span class="s2">&quot;[0, 1]&quot;</span><span class="w"> </span>--torchrunx-log-dir<span class="w"> </span>/path/to/logs
 
 <span class="c1"># Environment variable (takes precedence over the flag).</span>
-<span class="nv">TORCHRUNX_LOG_DIR</span><span class="o">=</span>/tmp/logs<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </span>&lt;task-name&gt;<span class="w"> </span>--gpu-ids<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">1</span>
+<span class="nv">TORCHRUNX_LOG_DIR</span><span class="o">=</span>/tmp/logs<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </span>&lt;task-name&gt;<span class="w"> </span>--gpu-ids<span class="w"> </span><span class="s2">&quot;[0, 1]&quot;</span>
 </pre></div>
 </div>
 </section>
@@ -649,7 +649,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Mar 05, 2026.
+  Last updated on Mar 06, 2026.
   <br/>
 </p>
   </div>
