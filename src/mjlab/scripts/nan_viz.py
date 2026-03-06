@@ -64,6 +64,9 @@ class NanDumpViewer:
 
   def setup(self) -> None:
     """Setup the viewer GUI and scene."""
+    self._playing = False
+    self._play_speed = 1.0
+
     self.info_html = self.server.gui.add_html(self._get_info_html())
 
     with self.server.gui.add_folder("Playback"):
@@ -80,6 +83,26 @@ class NanDumpViewer:
       def _(_) -> None:
         self.current_step = int(self.step_slider.value)
         self._update_state()
+
+      self.play_button = self.server.gui.add_button("Play", hint="Play / Pause")
+
+      @self.play_button.on_click
+      def _(_) -> None:
+        self._playing = not self._playing
+        self.play_button.label = "Pause" if self._playing else "Play"
+
+      self.speed_slider = self.server.gui.add_slider(
+        "Speed",
+        min=0.1,
+        max=5.0,
+        step=0.1,
+        initial_value=1.0,
+        hint="Playback speed multiplier",
+      )
+
+      @self.speed_slider.on_update
+      def _(_) -> None:
+        self._play_speed = float(self.speed_slider.value)
 
       if self.num_envs_dumped > 1:
         self.env_slider = self.server.gui.add_slider(
@@ -152,18 +175,39 @@ class NanDumpViewer:
 
   def run(self) -> None:
     """Run the viewer (blocks until server is stopped)."""
+    import time
+
     print("\nUse the sliders to scrub through states.")
     print("Press Ctrl+C to exit.")
 
+    # Physics timestep for real-time playback.
+    dt = self.model.opt.timestep
+
     try:
+      last_time = time.monotonic()
+      accumulator = 0.0
       while True:
-        import time
+        now = time.monotonic()
+        accumulator += (now - last_time) * self._play_speed
+        last_time = now
+
+        if self._playing and accumulator >= dt:
+          steps_to_advance = int(accumulator / dt)
+          accumulator -= steps_to_advance * dt
+          new_step = self.current_step + steps_to_advance
+          if new_step >= self.num_steps:
+            new_step = self.num_steps - 1
+            self._playing = False
+            self.play_button.label = "Play"
+          self.current_step = new_step
+          self.step_slider.value = new_step
+          self._update_state()
 
         # Check if visualization settings changed and need a refresh.
         if self.scene.needs_update:
           self.scene.refresh_visualization()
 
-        time.sleep(0.1)
+        time.sleep(0.005)
     except KeyboardInterrupt:
       print("\nShutting down...")
       self.server.stop()
