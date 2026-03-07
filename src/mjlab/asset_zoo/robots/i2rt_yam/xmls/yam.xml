@@ -137,7 +137,7 @@
                       <site name="camera_depth_optical_frame" pos="0 0 0" quat="0.5 -0.5 0.5 -0.5"/>
                       <camera name="camera_d405" pos="0 0 0" quat="0.5 0.5 -0.5 -0.5"
                         resolution="1280 720" sensorsize="1.28 0.72"
-                        focal="0.651761 0.651761" principal="-0.0031012 -0.0012095"/>
+                        focal="0.645426 0.645426" principal="0.009464 0.002855"/>
                     </body>
                   </body>
                   <body name="link_right_finger" pos="0.037 -0.0392 0.0605" quat="1 0 1 0">
