@@ -6,7 +6,7 @@ import torch
 
 from mjlab.entity import Entity
 from mjlab.managers.scene_entity_config import SceneEntityCfg
-from mjlab.tasks.manipulation.mdp.commands import LiftingCommand
+from mjlab.tasks.manipulation.mdp.commands import LiftingCommand, ReachingCommand
 
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
@@ -51,6 +51,25 @@ def bring_object_reward(
     torch.square(command.target_pos - obj.data.root_link_pos_w), dim=-1
   )
   return torch.exp(-position_error / std**2)
+
+
+def reaching_reward(
+  env: ManagerBasedRlEnv,
+  command_name: str,
+  std: float,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Gaussian reaching reward based on EE-to-goal distance."""
+  command = env.command_manager.get_term(command_name)
+  if not isinstance(command, (LiftingCommand, ReachingCommand)):
+    raise TypeError(
+      f"Command '{command_name}' must be a LiftingCommand or "
+      f"ReachingCommand, got {type(command)}"
+    )
+  robot: Entity = env.scene[asset_cfg.name]
+  ee_pos_w = robot.data.site_pos_w[:, asset_cfg.site_ids].squeeze(1)
+  reach_error = torch.sum(torch.square(ee_pos_w - command.target_pos), dim=-1)
+  return torch.exp(-reach_error / std**2)
 
 
 def joint_velocity_hinge_penalty(

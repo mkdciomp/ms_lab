@@ -155,3 +155,97 @@ class LiftingCommandCfg(CommandTermCfg):
 
   def build(self, env: ManagerBasedRlEnv) -> LiftingCommand:
     return LiftingCommand(self, env)
+
+
+class ReachingCommand(CommandTerm):
+  """Command that samples 3D target positions for EE reaching."""
+
+  cfg: ReachingCommandCfg
+
+  def __init__(self, cfg: ReachingCommandCfg, env: ManagerBasedRlEnv):
+    super().__init__(cfg, env)
+    self.robot: Entity = env.scene[cfg.robot_name]
+    site_ids, _ = self.robot.find_sites(cfg.site_name)
+    self.site_id = site_ids[0]
+    self.target_pos = torch.zeros(self.num_envs, 3, device=self.device)
+    self.episode_success = torch.zeros(self.num_envs, device=self.device)
+
+    self.metrics["ee_distance"] = torch.zeros(self.num_envs, device=self.device)
+    self.metrics["at_goal"] = torch.zeros(self.num_envs, device=self.device)
+    self.metrics["episode_success"] = torch.zeros(self.num_envs, device=self.device)
+
+  @property
+  def command(self) -> torch.Tensor:
+    return self.target_pos
+
+  def _update_metrics(self) -> None:
+    ee_pos_w = self.robot.data.site_pos_w[:, self.site_id]
+    distance = torch.norm(self.target_pos - ee_pos_w, dim=-1)
+    at_goal = (distance < self.cfg.success_threshold).float()
+    self.episode_success = torch.maximum(self.episode_success, at_goal)
+
+    self.metrics["ee_distance"] = distance
+    self.metrics["at_goal"] = at_goal
+    self.metrics["episode_success"] = self.episode_success
+
+  def compute_success(self) -> torch.Tensor:
+    return self.metrics["ee_distance"] < self.cfg.success_threshold
+
+  def _resample_command(self, env_ids: torch.Tensor) -> None:
+    n = len(env_ids)
+    self.episode_success[env_ids] = 0.0
+
+    r = self.cfg.target_position_range
+    lower = torch.tensor([r.x[0], r.y[0], r.z[0]], device=self.device)
+    upper = torch.tensor([r.x[1], r.y[1], r.z[1]], device=self.device)
+    target_pos = sample_uniform(lower, upper, (n, 3), device=self.device)
+    self.target_pos[env_ids] = target_pos + self._env.scene.env_origins[env_ids]
+
+  def _update_command(self) -> None:
+    pass
+
+  def _debug_vis_impl(self, visualizer: DebugVisualizer) -> None:
+    env_indices = visualizer.get_env_indices(self.num_envs)
+    if not env_indices:
+      return
+    for batch in env_indices:
+      target_pos = self.target_pos[batch].cpu().numpy()
+      visualizer.add_sphere(
+        center=target_pos,
+        radius=0.03,
+        color=self.cfg.viz.target_color,
+        label=f"reach_target_{batch}",
+      )
+
+
+@dataclass(kw_only=True)
+class ReachingCommandCfg(CommandTermCfg):
+  robot_name: str = "robot"
+  site_name: str = "grasp_site"
+  success_threshold: float = 0.02
+
+  @dataclass
+  class TargetPositionRangeCfg:
+    """Configuration for target position sampling."""
+
+    x: tuple[float, float] = (0.2, 0.5)
+    y: tuple[float, float] = (-0.3, 0.3)
+    z: tuple[float, float] = (0.05, 0.4)
+
+  target_position_range: TargetPositionRangeCfg = field(
+    default_factory=TargetPositionRangeCfg
+  )
+
+  @dataclass
+  class VizCfg:
+    target_color: tuple[float, float, float, float] = (
+      0.0,
+      1.0,
+      0.5,
+      0.3,
+    )
+
+  viz: VizCfg = field(default_factory=VizCfg)
+
+  def build(self, env: ManagerBasedRlEnv) -> ReachingCommand:
+    return ReachingCommand(self, env)

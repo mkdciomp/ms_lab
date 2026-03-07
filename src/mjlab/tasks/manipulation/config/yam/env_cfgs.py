@@ -2,6 +2,7 @@ from typing import Any, Literal
 
 import mujoco
 
+from mjlab.actuator import BuiltinPositionActuatorCfg
 from mjlab.asset_zoo.robots import (
   YAM_ACTION_SCALE,
   get_yam_robot_cfg,
@@ -15,11 +16,12 @@ from mjlab.managers import (
   ObservationTermCfg,
 )
 from mjlab.managers.event_manager import EventTermCfg
-from mjlab.utils.noise.noise_cfg import GaussianNoiseCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import CameraSensorCfg, ContactSensorCfg
 from mjlab.tasks.manipulation import mdp as manipulation_mdp
 from mjlab.tasks.manipulation.lift_cube_env_cfg import make_lift_cube_env_cfg
+from mjlab.tasks.manipulation.reach_env_cfg import make_reach_env_cfg
+from mjlab.utils.noise.noise_cfg import GaussianNoiseCfg
 
 
 def get_cube_spec(cube_size: float = 0.02, mass: float = 0.05) -> mujoco.MjSpec:
@@ -80,6 +82,56 @@ def yam_lift_cube_env_cfg(
     # Higher command resampling frequency for more dynamic play.
     assert cfg.commands is not None
     cfg.commands["lift_height"].resampling_time_range = (4.0, 4.0)
+
+  return cfg
+
+
+def yam_reach_env_cfg(
+  play: bool = False,
+) -> ManagerBasedRlEnvCfg:
+  cfg = make_reach_env_cfg()
+
+  robot_cfg = get_yam_robot_cfg()
+
+  # Override gripper PD gains.
+  assert robot_cfg.articulation is not None
+  for act in robot_cfg.articulation.actuators:
+    if (
+      isinstance(act, BuiltinPositionActuatorCfg)
+      and "left_finger" in act.target_names_expr
+    ):
+      act.stiffness = 20.0
+      act.damping = 1.0
+
+  cfg.scene.entities = {
+    "robot": robot_cfg,
+  }
+
+  joint_pos_action = cfg.actions["joint_pos"]
+  assert isinstance(joint_pos_action, JointPositionActionCfg)
+  joint_pos_action.scale = YAM_ACTION_SCALE
+
+  cfg.observations["actor"].terms["ee_to_goal"].params["asset_cfg"].site_names = (
+    "grasp_site",
+  )
+  cfg.rewards["reach"].params["asset_cfg"].site_names = ("grasp_site",)
+  cfg.rewards["reach_precise"].params["asset_cfg"].site_names = ("grasp_site",)
+
+  # Configure collision sensor pattern.
+  assert cfg.scene.sensors is not None
+  for sensor in cfg.scene.sensors:
+    if sensor.name == "ee_ground_collision":
+      assert isinstance(sensor, ContactSensorCfg)
+      sensor.primary.pattern = "link_6"
+
+  cfg.viewer.body_name = "arm"
+
+  if play:
+    cfg.episode_length_s = int(1e9)
+    cfg.observations["actor"].enable_corruption = False
+    cfg.curriculum = {}
+    assert cfg.commands is not None
+    cfg.commands["reach_goal"].resampling_time_range = (3.0, 3.0)
 
   return cfg
 

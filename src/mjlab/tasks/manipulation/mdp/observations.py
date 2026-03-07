@@ -7,7 +7,7 @@ import torch
 from mjlab.entity import Entity
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import CameraSensor
-from mjlab.tasks.manipulation.mdp.commands import LiftingCommand
+from mjlab.tasks.manipulation.mdp.commands import LiftingCommand, ReachingCommand
 from mjlab.utils.lab_api.math import quat_apply, quat_inv
 
 if TYPE_CHECKING:
@@ -85,6 +85,27 @@ def target_position(
   target_pos_rel_w = target_pos_w - ee_pos_w
   target_pos_ee = quat_apply(quat_inv(ee_quat_w), target_pos_rel_w)
   return target_pos_ee
+
+
+def ee_to_goal_distance(
+  env: ManagerBasedRlEnv,
+  command_name: str,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Distance vector from end effector to goal in base frame."""
+  command = env.command_manager.get_term(command_name)
+  if not isinstance(command, (LiftingCommand, ReachingCommand)):
+    raise TypeError(
+      f"Command '{command_name}' must be a LiftingCommand or "
+      f"ReachingCommand, got {type(command)}"
+    )
+  robot: Entity = env.scene[asset_cfg.name]
+  ee_pos_w = robot.data.site_pos_w[:, asset_cfg.site_ids].squeeze(1)
+  goal_pos_w = command.target_pos
+  distance_vec_w = goal_pos_w - ee_pos_w
+  base_quat_w = robot.data.root_link_quat_w
+  distance_vec_b = quat_apply(quat_inv(base_quat_w), distance_vec_w)
+  return distance_vec_b
 
 
 def camera_rgb(env: ManagerBasedRlEnv, sensor_name: str) -> torch.Tensor:
