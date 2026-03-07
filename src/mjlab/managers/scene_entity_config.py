@@ -119,6 +119,8 @@ class SceneEntityCfg:
   preserve_order: bool = False
   """If True, maintains the order of components as specified."""
 
+  _resolved: bool = field(default=False, init=False, repr=False)
+
   def resolve(self, scene: Scene) -> None:
     """Resolve names and IDs for all configured fields.
 
@@ -135,10 +137,15 @@ class SceneEntityCfg:
       ValueError: If provided names and IDs are inconsistent.
       KeyError: If the entity name is not found in the scene.
     """
+    if self._resolved:
+      return
+
     entity = scene[self.name]
 
     for config in _FIELD_CONFIGS:
       self._resolve_field(entity, config)
+
+    self._resolved = True
 
   def _resolve_field(self, entity: Entity, config: _FieldConfig) -> None:
     """Resolve a single field's names and IDs.
@@ -186,6 +193,8 @@ class SceneEntityCfg:
       return None
     if isinstance(value, (str, int)):
       return [value]
+    if isinstance(value, tuple):
+      return list(value)
     return value
 
   def _validate_consistency(
