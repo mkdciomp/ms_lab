@@ -5,6 +5,13 @@ Changelog
 Upcoming version (not yet released)
 -----------------------------------
 
+Added
+^^^^^
+
+- NaN guard now captures mocap body poses (``mocap_pos``, ``mocap_quat``)
+  when the model has mocap bodies, enabling full state reconstruction in
+  the dump viewer for fixed-base entities.
+
 Fixed
 ^^^^^
 
