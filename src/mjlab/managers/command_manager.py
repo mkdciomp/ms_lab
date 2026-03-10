@@ -8,12 +8,13 @@ from typing import TYPE_CHECKING, Any, Sequence
 import torch
 from prettytable import PrettyTable
 
-from mjlab.managers.manager_base import ManagerBase, ManagerTermBase
-from mjlab.utils.dataclasses import get_terms
+from ms_lab.managers.manager_base import ManagerBase, ManagerTermBase
+from ms_lab.utils.dataclasses import get_terms
 
 if TYPE_CHECKING:
-  from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
-  from mjlab.managers.manager_term_config import CommandTermCfg
+  from ms_lab.envs.manager_based_rl_env import ManagerBasedRlEnv
+  from ms_lab.managers.manager_term_config import CommandTermCfg
+  from ms_lab.viewer.debug_visualizer import DebugVisualizer
 
 
 class CommandTerm(ManagerTermBase):
@@ -22,17 +23,18 @@ class CommandTerm(ManagerTermBase):
   def __init__(self, cfg: CommandTermCfg, env: ManagerBasedRlEnv):
     self.cfg = cfg
     super().__init__(env)
+
     self.metrics = dict()
     self.time_left = torch.zeros(self.num_envs, device=self.device)
     self.command_counter = torch.zeros(
       self.num_envs, device=self.device, dtype=torch.long
     )
 
-  def debug_vis(self, scn):
+  def debug_vis(self, visualizer: "DebugVisualizer") -> None:
     if self.cfg.debug_vis:
-      self._debug_vis_impl(scn)
+      self._debug_vis_impl(visualizer)
 
-  def _debug_vis_impl(self, scn):
+  def _debug_vis_impl(self, visualizer: "DebugVisualizer") -> None:
     pass
 
   @property
@@ -104,9 +106,9 @@ class CommandManager(ManagerBase):
     msg += "\n"
     return msg
 
-  def debug_vis(self, scn):
+  def debug_vis(self, visualizer: "DebugVisualizer") -> None:
     for term in self._terms.values():
-      term.debug_vis(scn)
+      term.debug_vis(visualizer)
 
   # Properties.
 
@@ -143,7 +145,7 @@ class CommandManager(ManagerBase):
     return self._terms[name]
 
   def _prepare_terms(self):
-    from mjlab.managers.manager_term_config import CommandTermCfg
+    from ms_lab.managers.manager_term_config import CommandTermCfg
 
     cfg_items = get_terms(self.cfg, CommandTermCfg).items()
     for term_name, term_cfg in cfg_items:
@@ -173,7 +175,7 @@ class NullCommandManager:
   def __repr__(self) -> str:
     return "NullCommandManager()"
 
-  def debug_vis(self, scn) -> None:
+  def debug_vis(self, visualizer: "DebugVisualizer") -> None:
     pass
 
   def get_active_iterable_terms(

@@ -6,7 +6,7 @@ import torch
 from typing_extensions import override
 
 if TYPE_CHECKING:
-  from mjlab.utils.noise import noise_cfg
+  from ms_lab.utils.noise import noise_cfg
 
 
 class NoiseModel:

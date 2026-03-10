@@ -7,12 +7,12 @@ from typing import TYPE_CHECKING, Any, Sequence
 import torch
 from prettytable import PrettyTable
 
-from mjlab.managers.manager_base import ManagerBase, ManagerTermBase
-from mjlab.managers.manager_term_config import CurriculumTermCfg
-from mjlab.utils.dataclasses import get_terms
+from ms_lab.managers.manager_base import ManagerBase
+from ms_lab.managers.manager_term_config import CurriculumTermCfg
+from ms_lab.utils.dataclasses import get_terms
 
 if TYPE_CHECKING:
-  from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
+  from ms_lab.envs.manager_based_rl_env import ManagerBasedRlEnv
 
 
 class CurriculumManager(ManagerBase):
@@ -101,7 +101,7 @@ class CurriculumManager(ManagerBase):
       self._resolve_common_term_cfg(term_name, term_cfg)
       self._term_names.append(term_name)
       self._term_cfgs.append(term_cfg)
-      if isinstance(term_cfg.func, ManagerTermBase):
+      if hasattr(term_cfg.func, "reset") and callable(term_cfg.func.reset):
         self._class_term_cfgs.append(term_cfg)
 
 

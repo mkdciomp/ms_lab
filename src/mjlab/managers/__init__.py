@@ -1,12 +1,12 @@
 """Environment managers."""
 
-from mjlab.managers.command_manager import (
+from ms_lab.managers.command_manager import (
   CommandManager,
   CommandTerm,
   NullCommandManager,
 )
-from mjlab.managers.curriculum_manager import CurriculumManager, NullCurriculumManager
-from mjlab.managers.manager_term_config import CommandTermCfg
+from ms_lab.managers.curriculum_manager import CurriculumManager, NullCurriculumManager
+from ms_lab.managers.manager_term_config import CommandTermCfg
 
 __all__ = (
   "CommandManager",

@@ -8,12 +8,12 @@ from typing import TYPE_CHECKING, Sequence
 import torch
 from prettytable import PrettyTable
 
-from mjlab.managers.manager_base import ManagerBase, ManagerTermBase
-from mjlab.utils.dataclasses import get_terms
+from ms_lab.managers.manager_base import ManagerBase, ManagerTermBase
+from ms_lab.utils.dataclasses import get_terms
 
 if TYPE_CHECKING:
-  from mjlab.envs.manager_based_env import ManagerBasedEnv
-  from mjlab.managers.manager_term_config import ActionTermCfg
+  from ms_lab.envs.manager_based_env import ManagerBasedEnv
+  from ms_lab.managers.manager_term_config import ActionTermCfg
 
 
 class ActionTerm(ManagerTermBase):
@@ -21,8 +21,9 @@ class ActionTerm(ManagerTermBase):
 
   def __init__(self, cfg: ActionTermCfg, env: ManagerBasedEnv):
     self.cfg = cfg
+
     super().__init__(env)
-    self._asset = self._env.scene[self.cfg.asset_name]
+    self._asset = self._env._backend.get_robot(self.cfg.asset_name)
 
   @property
   @abc.abstractmethod
@@ -46,6 +47,7 @@ class ActionTerm(ManagerTermBase):
 class ActionManager(ManagerBase):
   def __init__(self, cfg: object, env: ManagerBasedEnv):
     self.cfg = cfg
+
     super().__init__(env=env)
 
     # Create buffers to store actions.
@@ -61,6 +63,7 @@ class ActionManager(ManagerBase):
     table.field_names = ["Index", "Name", "Dimension"]
     table.align["Name"] = "l"
     table.align["Dimension"] = "r"
+
     for index, (name, term) in enumerate(self._terms.items()):
       table.add_row([index, name, term.action_dim])
     msg += table.get_string()
@@ -106,6 +109,7 @@ class ActionManager(ManagerBase):
     return {}
 
   def process_action(self, action: torch.Tensor) -> None:
+
     if self.total_action_dim != action.shape[1]:
       raise ValueError(
         f"Invalid action shape, expected: {self.total_action_dim}, received: {action.shape[1]}."
@@ -138,7 +142,7 @@ class ActionManager(ManagerBase):
     self._term_names: list[str] = list()
     self._terms: dict[str, ActionTerm] = dict()
 
-    from mjlab.managers.manager_term_config import ActionTermCfg
+    from ms_lab.managers.manager_term_config import ActionTermCfg
 
     cfg_items = get_terms(self.cfg, ActionTermCfg).items()
     for term_name, term_cfg in cfg_items:

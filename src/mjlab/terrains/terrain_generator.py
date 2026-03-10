@@ -8,8 +8,8 @@ from typing import Literal
 import mujoco
 import numpy as np
 
-from mjlab.terrains.utils import make_border
-from mjlab.utils.color import RGBA
+from ms_lab.terrains.utils import make_border
+from ms_lab.utils.color import RGBA
 
 _DARK_GRAY = (0.2, 0.2, 0.2, 1.0)
 
@@ -78,6 +78,7 @@ class TerrainGenerator:
 
     self.cfg = cfg
     self.device = device
+
 
     for sub_cfg in self.cfg.sub_terrains.values():
       sub_cfg.size = self.cfg.size

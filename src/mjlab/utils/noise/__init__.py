@@ -1,4 +1,4 @@
-from mjlab.utils.noise.noise_cfg import (
+from ms_lab.utils.noise.noise_cfg import (
   ConstantNoiseCfg,
   GaussianNoiseCfg,
   NoiseCfg,
@@ -6,7 +6,7 @@ from mjlab.utils.noise.noise_cfg import (
   NoiseModelWithAdditiveBiasCfg,
   UniformNoiseCfg,
 )
-from mjlab.utils.noise.noise_model import (
+from ms_lab.utils.noise.noise_model import (
   NoiseModel,
   NoiseModelWithAdditiveBias,
 )

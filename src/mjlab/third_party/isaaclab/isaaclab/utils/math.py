@@ -2,6 +2,12 @@
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
+#
+# Modified by ms_lab developers:
+#   - 2025-10-05: Replaced quat_rotate_inverse with quat_apply_inverse in
+#     rigid_body_twist_transform() (lines 820-821). The quat_rotate_inverse function was
+#     deprecated/removed in newer PyTorch versions, replaced by quat_apply_inverse with
+#     identical functionality.
 
 """Sub-module containing utilities for various math operations."""
 
@@ -280,6 +286,7 @@ def quat_from_euler_xyz(roll: torch.Tensor, pitch: torch.Tensor, yaw: torch.Tens
     Returns:
         The quaternion in (w, x, y, z). Shape is (N, 4).
     """
+
     cy = torch.cos(yaw * 0.5)
     sy = torch.sin(yaw * 0.5)
     cr = torch.cos(roll * 0.5)
@@ -817,8 +824,8 @@ def rigid_body_twist_transform(
         - The transformed linear velocity in frame 1. Shape is (N, 3).
         - The transformed angular velocity in frame 1. Shape is (N, 3).
     """
-    w1 = quat_rotate_inverse(q01, w0)
-    v1 = quat_rotate_inverse(q01, v0 + torch.cross(w0, t01, dim=-1))
+    w1 = quat_apply_inverse(q01, w0)
+    v1 = quat_apply_inverse(q01, v0 + torch.cross(w0, t01, dim=-1))
     return v1, w1
 
 

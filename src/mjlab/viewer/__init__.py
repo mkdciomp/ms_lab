@@ -1,9 +1,9 @@
-"""MJLab viewer module for environment visualization."""
+"""ms_lab viewer module for environment visualization."""
 
-from mjlab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
-from mjlab.viewer.native import NativeMujocoViewer
-from mjlab.viewer.viewer_config import ViewerConfig
-from mjlab.viewer.viser import ViserViewer
+from ms_lab.viewer.base import BaseViewer, EnvProtocol, PolicyProtocol, VerbosityLevel
+from ms_lab.viewer.native import NativeMujocoViewer
+from ms_lab.viewer.viewer_config import ViewerConfig
+from ms_lab.viewer.viser import ViserViewer
 
 __all__ = [
   "BaseViewer",

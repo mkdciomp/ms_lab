@@ -7,11 +7,11 @@ from typing import TYPE_CHECKING, Any
 
 import torch
 
-from mjlab.managers.scene_entity_config import SceneEntityCfg
+from ms_lab.managers.scene_entity_config import SceneEntityCfg
 
 if TYPE_CHECKING:
-  from mjlab.envs.manager_based_env import ManagerBasedEnv
-  from mjlab.managers.manager_term_config import ManagerTermBaseCfg
+  from ms_lab.envs.manager_based_env import ManagerBasedEnv
+  from ms_lab.managers.manager_term_config import ManagerTermBaseCfg
 
 
 class ManagerTermBase:
@@ -87,7 +87,7 @@ class ManagerBase(abc.ABC):
     del term_name  # Unused.
     for key, value in term_cfg.params.items():
       if isinstance(value, SceneEntityCfg):
-        value.resolve(self._env.scene)
+        value.resolve(self._env._backend)
         term_cfg.params[key] = value
     if inspect.isclass(term_cfg.func):
       term_cfg.func = term_cfg.func(cfg=term_cfg, env=self._env)

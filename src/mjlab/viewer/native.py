@@ -12,16 +12,17 @@ import mujoco.viewer
 import numpy as np
 import torch
 
-from mjlab.viewer.base import (
+from ms_lab.viewer.base import (
   BaseViewer,
   EnvProtocol,
   PolicyProtocol,
   VerbosityLevel,
   ViewerAction,
 )
+from ms_lab.viewer.mujoco_native_visualizer import MujocoNativeDebugVisualizer
 
 if TYPE_CHECKING:
-  from mjlab.entity import Entity
+  from ms_lab.entity import Entity
 
 
 @dataclass(frozen=True)
@@ -47,17 +48,14 @@ class NativeMujocoViewer(BaseViewer):
     env: EnvProtocol,
     policy: PolicyProtocol,
     frame_rate: float = 60.0,
-    render_all_envs: bool = True,
     key_callback: Optional[Callable[[int], None]] = None,
     plot_cfg: PlotCfg | None = None,
     enable_perturbations: bool = True,
-    disable_shadows: bool = False,
     verbosity: VerbosityLevel = VerbosityLevel.SILENT,
   ):
-    super().__init__(env, policy, frame_rate, render_all_envs, verbosity)
+    super().__init__(env, policy, frame_rate, verbosity)
     self.user_key_callback = key_callback
     self.enable_perturbations = enable_perturbations
-    self.disable_shadows = disable_shadows
 
     self.mjm: Optional[mujoco.MjModel] = None
     self.mjd: Optional[mujoco.MjData] = None
@@ -72,9 +70,10 @@ class NativeMujocoViewer(BaseViewer):
     self._histories: dict[str, deque[float]] = {}  # Per-term ring buffer.
     self._yrange: dict[str, tuple[float, float]] = {}  # Per-term y-range.
     self._show_plots: bool = True
+    self._show_debug_vis: bool = True
     self._plot_cfg = plot_cfg or PlotCfg()
 
-    self.env_idx = 0
+    self.env_idx = self.cfg.env_idx
     self._mj_lock = Lock()
 
   def setup(self) -> None:
@@ -83,7 +82,7 @@ class NativeMujocoViewer(BaseViewer):
     self.mjm = sim.mj_model
     self.mjd = sim.mj_data
 
-    if self.render_all_envs and self.env.unwrapped.num_envs > 1:
+    if self.env.unwrapped.num_envs > 1:
       assert self.mjm is not None
       self.vd = mujoco.MjData(self.mjm)
 
@@ -110,7 +109,7 @@ class NativeMujocoViewer(BaseViewer):
     if self.viewer is None:
       raise RuntimeError("Failed to launch MuJoCo viewer")
 
-    if self.disable_shadows:
+    if not self.cfg.enable_shadows:
       self.viewer.user_scn.flags[mujoco.mjtRndFlag.mjRND_SHADOW] = 0
 
     self._setup_camera()
@@ -131,6 +130,9 @@ class NativeMujocoViewer(BaseViewer):
       sim_data = self.env.unwrapped.sim.data
       self.mjd.qpos[:] = sim_data.qpos[self.env_idx].cpu().numpy()
       self.mjd.qvel[:] = sim_data.qvel[self.env_idx].cpu().numpy()
+      if self.mjm.nmocap > 0:
+        self.mjd.mocap_pos[:] = sim_data.mocap_pos[self.env_idx].cpu().numpy()
+        self.mjd.mocap_quat[:] = sim_data.mocap_quat[self.env_idx].cpu().numpy()
       mujoco.mj_forward(self.mjm, self.mjd)
 
       # text_1 = "Env\nStep\nStatus\nSpeed\nFPS"
@@ -171,15 +173,19 @@ class NativeMujocoViewer(BaseViewer):
       #   v.set_figures([])
 
       v.user_scn.ngeom = 0
-      if hasattr(self.env.unwrapped, "update_visualizers"):
-        self.env.unwrapped.update_visualizers(v.user_scn)
+      if self._show_debug_vis and hasattr(self.env.unwrapped, "update_visualizers"):
+        visualizer = MujocoNativeDebugVisualizer(v.user_scn, self.mjm, self.env_idx)
+        self.env.unwrapped.update_visualizers(visualizer)
 
-      if self.render_all_envs and self.vd is not None:
+      if self.vd is not None:
         for i in range(self.env.unwrapped.num_envs):
           if i == self.env_idx:
             continue
           self.vd.qpos[:] = sim_data.qpos[i].cpu().numpy()
           self.vd.qvel[:] = sim_data.qvel[i].cpu().numpy()
+          if self.mjm.nmocap > 0:
+            self.vd.mocap_pos[:] = sim_data.mocap_pos[i].cpu().numpy()
+            self.vd.mocap_quat[:] = sim_data.mocap_quat[i].cpu().numpy()
           mujoco.mj_forward(self.mjm, self.vd)
           assert self.pert is not None
           mujoco.mjv_addGeoms(
@@ -217,13 +223,14 @@ class NativeMujocoViewer(BaseViewer):
 
   def _safe_key_callback(self, key: int) -> None:
     """Runs on MuJoCo viewer thread; must not touch env/sim directly."""
-    from mjlab.viewer.keys import (
+    from ms_lab.viewer.keys import (
       KEY_COMMA,
       KEY_ENTER,
       KEY_EQUAL,
       KEY_MINUS,
       KEY_P,
       KEY_PERIOD,
+      KEY_R,
       KEY_SPACE,
     )
 
@@ -240,7 +247,9 @@ class NativeMujocoViewer(BaseViewer):
     elif key == KEY_PERIOD:
       self.request_action("NEXT_ENV")
     elif key == KEY_P:
-      self.request_action("TOGGLE_PLOTS")
+      self.request_action("TOGGLE_PLOTS", "TOGGLE_PLOTS")
+    elif key == KEY_R:
+      self.request_action("TOGGLE_DEBUG_VIS", "TOGGLE_DEBUG_VIS")
 
     if self.user_key_callback:
       try:
@@ -261,10 +270,17 @@ class NativeMujocoViewer(BaseViewer):
       return True
     else:
       if hasattr(action, "value") and action.value == "custom":
-        if payload == "TOGGLE_PLOTS" or payload is None:
+        if payload == "TOGGLE_PLOTS":
           self._show_plots = not self._show_plots
           self.log(
             f"[INFO] Reward plots {'shown' if self._show_plots else 'hidden'}",
+            VerbosityLevel.INFO,
+          )
+          return True
+        elif payload == "TOGGLE_DEBUG_VIS":
+          self._show_debug_vis = not self._show_debug_vis
+          self.log(
+            f"[INFO] Debug visualization {'shown' if self._show_debug_vis else 'hidden'}",
             VerbosityLevel.INFO,
           )
           return True

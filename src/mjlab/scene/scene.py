@@ -6,8 +6,9 @@ import mujoco
 import mujoco_warp as mjwarp
 import torch
 
-from mjlab.entity import Entity, EntityCfg
-from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
+from ms_lab.entity import Entity, EntityCfg
+from ms_lab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
+#from ms_lab.ms_physx.object import ObjectCfg
 
 _SCENE_XML = Path(__file__).parent / "scene.xml"
 
@@ -18,6 +19,8 @@ class SceneCfg:
   env_spacing: float = 2.0
   terrain: TerrainImporterCfg | None = None
   entities: dict[str, EntityCfg] = field(default_factory=dict)
+  objects = None
+  #objects: dict[str, ObjectCfg] = field(default_factory=dict)
   extent: float | None = None
 
 
@@ -36,6 +39,7 @@ class Scene:
     self._attach_entities()
 
   def compile(self) -> mujoco.MjModel:
+
     return self._spec.compile()
 
   def to_zip(self, path: Path) -> None:
@@ -138,10 +142,15 @@ class Scene:
       self._spec.attach(ent.spec, prefix=f"{ent_name}/", frame=frame)
 
   def _attach_terrain(self) -> None:
+
     if self._cfg.terrain is None:
       return
     self._cfg.terrain.num_envs = self._cfg.num_envs
     self._cfg.terrain.env_spacing = self._cfg.env_spacing
+
     self._terrain = TerrainImporter(self._cfg.terrain, self._device)
     frame = self._spec.worldbody.add_frame()
     self._spec.attach(self._terrain.spec, frame=frame)
+    #with open("./rough_scene.xml", "w") as f:
+    #  f.write(self._spec.to_xml())
+    #exit()

@@ -5,7 +5,7 @@ import torch
 from rsl_rl.env import VecEnv
 from tensordict import TensorDict
 
-from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
+from ms_lab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
 
 
 class RslRlVecEnvWrapper(VecEnv):

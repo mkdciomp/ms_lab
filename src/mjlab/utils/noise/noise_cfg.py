@@ -7,7 +7,7 @@ from typing import ClassVar, Literal
 import torch
 from typing_extensions import override
 
-from mjlab.utils.noise import noise_model
+from ms_lab.utils.noise import noise_model
 
 
 def _ensure_tensor_device(

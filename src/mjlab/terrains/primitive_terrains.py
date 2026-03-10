@@ -16,13 +16,13 @@ from typing import Tuple
 import mujoco
 import numpy as np
 
-from mjlab.terrains.terrain_generator import (
+from ms_lab.terrains.terrain_generator import (
   SubTerrainCfg,
   TerrainGeometry,
   TerrainOutput,
 )
-from mjlab.terrains.utils import make_border, make_plane
-from mjlab.utils.color import (
+from ms_lab.terrains.utils import make_border, make_plane
+from ms_lab.utils.color import (
   HSV,
   brand_ramp,
   clamp,

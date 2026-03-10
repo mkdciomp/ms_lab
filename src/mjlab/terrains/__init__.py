@@ -1,20 +1,20 @@
-from mjlab.terrains.heightfield_terrains import (
+from ms_lab.terrains.heightfield_terrains import (
   HfPyramidSlopedTerrainCfg,
   HfRandomUniformTerrainCfg,
   HfWaveTerrainCfg,
 )
-from mjlab.terrains.primitive_terrains import (
+from ms_lab.terrains.primitive_terrains import (
   BoxFlatTerrainCfg,
   BoxInvertedPyramidStairsTerrainCfg,
   BoxPyramidStairsTerrainCfg,
   BoxRandomGridTerrainCfg,
 )
-from mjlab.terrains.terrain_generator import (
+from ms_lab.terrains.terrain_generator import (
   SubTerrainCfg,
   TerrainGenerator,
   TerrainGeneratorCfg,
 )
-from mjlab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
+from ms_lab.terrains.terrain_importer import TerrainImporter, TerrainImporterCfg
 
 __all__ = (
   "TerrainGenerator",

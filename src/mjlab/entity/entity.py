@@ -9,11 +9,11 @@ import mujoco_warp as mjwarp
 import numpy as np
 import torch
 
-from mjlab.entity.data import EntityData
-from mjlab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
-from mjlab.utils import spec_config as spec_cfg
-from mjlab.utils.mujoco import dof_width, qpos_width
-from mjlab.utils.string import resolve_expr
+from ms_lab.entity.data import EntityData
+from ms_lab.third_party.isaaclab.isaaclab.utils.string import resolve_matching_names
+from ms_lab.utils import spec_config as spec_cfg
+from ms_lab.utils.mujoco import dof_width, qpos_width
+from ms_lab.utils.string import resolve_expr
 
 
 @dataclass(frozen=True)
@@ -33,6 +33,7 @@ class EntityIndexing:
   site_ids: torch.Tensor
   ctrl_ids: torch.Tensor
   joint_ids: torch.Tensor
+  mocap_id: int | None
 
   # Addresses.
   joint_q_adr: torch.Tensor
@@ -62,10 +63,11 @@ class EntityCfg:
     joint_vel: dict[str, float] = field(default_factory=lambda: {".*": 0.0})
 
   init_state: InitialStateCfg = field(default_factory=InitialStateCfg)
-  spec_fn: Callable[[], mujoco.MjSpec] = field(
+  spec_fn: Callable[[], mujoco.MjSpec] | None= field(
     default_factory=lambda: (lambda: mujoco.MjSpec())
   )
-  articulation: EntityArticulationInfoCfg | None = None
+  asset_file: str | None = None
+  articulation: EntityArticulationInfoCfg | None | str = None
 
   # Editors.
   lights: tuple[spec_cfg.LightCfg, ...] = field(default_factory=tuple)
@@ -102,14 +104,19 @@ class Entity:
     - Non-articulated: No joints other than freejoint
     - Articulated: Has joints in kinematic tree (may or may not be actuated)
 
+  Fixed non-articulated entities can optionally be mocap bodies, whereby their
+  position and orientation can be set directly each timestep rather than being
+  determined by physics. This property can be useful for creating props with
+  adjustable position and orientation.
+
   Supported Combinations:
   ----------------------
-  | Type                      | Example                    | is_fixed_base | is_articulated | is_actuated |
-  |---------------------------|----------------------------|---------------|----------------|-------------|
-  | Fixed Non-articulated     | Table, wall, ground plane  | True          | False          | False       |
-  | Fixed Articulated         | Robot arm, door on hinges  | True          | True           | True/False  |
-  | Floating Non-articulated  | Box, ball, mug             | False         | False          | False       |
-  | Floating Articulated      | Humanoid, quadruped        | False         | True           | True/False  |
+  | Type                      | Example             | is_fixed_base | is_articulated | is_actuated |
+  |---------------------------|---------------------|---------------|----------------|-------------|
+  | Fixed Non-articulated     | Table, wall         | True          | False          | False       |
+  | Fixed Articulated         | Robot arm, door     | True          | True           | True/False  |
+  | Floating Non-articulated  | Box, ball, mug      | False         | False          | False       |
+  | Floating Articulated      | Humanoid, quadruped | False         | True           | True/False  |
   """
 
   def __init__(self, cfg: EntityCfg) -> None:
@@ -126,7 +133,6 @@ class Entity:
 
     self._apply_spec_editors()
     self._add_initial_state_keyframe()
-    # TODO: Should init_state.pos/rot be applied to root body if fixed base?
 
   def _apply_spec_editors(self) -> None:
     for cfg_list in [
@@ -158,7 +164,13 @@ class Entity:
     key = self._spec.add_key(name="init_state", qpos=key_qpos)
 
     if self.is_actuated and joint_pos is not None:
-      key.ctrl = joint_pos
+      name_to_pos = {name: joint_pos[i] for i, name in enumerate(self.joint_names)}
+      ctrl = np.array([name_to_pos.get(act.name, 0.0) for act in self._spec.actuators])
+      key.ctrl = ctrl
+
+    if self.is_fixed_base:
+      self.root_body.pos[:] = self.cfg.init_state.pos
+      self.root_body.quat[:] = self.cfg.init_state.rot
 
   # Attributes.
 
@@ -175,7 +187,12 @@ class Entity:
   @property
   def is_actuated(self) -> bool:
     """Entity has actuated joints."""
-    return self.cfg.articulation is not None and self.num_actuators > 0
+    return self.num_actuators > 0
+
+  @property
+  def is_mocap(self) -> bool:
+    """Entity root body is a mocap body (only for fixed-base entities)."""
+    return bool(self.root_body.mocap) if self.is_fixed_base else False
 
   @property
   def spec(self) -> mujoco.MjSpec:
@@ -187,6 +204,7 @@ class Entity:
 
   @property
   def joint_names(self) -> list[str]:
+
     return [j.name.split("/")[-1] for j in self._non_free_joints]
 
   @property
@@ -211,6 +229,7 @@ class Entity:
 
   @property
   def actuator_names(self) -> list[str]:
+
     return [a.name.split("/")[-1] for a in self.spec.actuators]
 
   @property
@@ -240,6 +259,10 @@ class Entity:
   @property
   def num_actuators(self) -> int:
     return len(self.actuator_names)
+
+  @property
+  def root_body(self) -> mujoco.MjsBody:
+    return self.spec.bodies[1]
 
   # Methods.
 
@@ -333,23 +356,19 @@ class Entity:
     self.indexing = indexing
     nworld = data.nworld
 
-    # Root state - only for movable entities.
+    # Root state.
+    root_state_components = [self.cfg.init_state.pos, self.cfg.init_state.rot]
     if not self.is_fixed_base:
-      default_root_state = (
-        tuple(self.cfg.init_state.pos)
-        + tuple(self.cfg.init_state.rot)
-        + tuple(self.cfg.init_state.lin_vel)
-        + tuple(self.cfg.init_state.ang_vel)
+      root_state_components.extend(
+        [self.cfg.init_state.lin_vel, self.cfg.init_state.ang_vel]
       )
-      default_root_state = torch.tensor(
-        default_root_state, dtype=torch.float, device=device
-      )
-      default_root_state = default_root_state.repeat(nworld, 1)
-    else:
-      # Static entities have no root state.
-      default_root_state = torch.empty(nworld, 0, dtype=torch.float, device=device)
+    default_root_state = torch.tensor(
+      sum((tuple(c) for c in root_state_components), ()),
+      dtype=torch.float,
+      device=device,
+    ).repeat(nworld, 1)
 
-    # Joint state - only for articulated entities.
+    # Joint state.
     if self.is_articulated:
       default_joint_pos = torch.tensor(
         resolve_expr(self.cfg.init_state.joint_pos, self.joint_names), device=device
@@ -358,6 +377,7 @@ class Entity:
         resolve_expr(self.cfg.init_state.joint_vel, self.joint_names), device=device
       )[None].repeat(nworld, 1)
 
+      # Joint stiffness and damping.
       if self.is_actuated:
         default_joint_stiffness = model.actuator_gainprm[:, self.indexing.ctrl_ids, 0]
         default_joint_damping = -model.actuator_biasprm[:, self.indexing.ctrl_ids, 2]
@@ -367,7 +387,7 @@ class Entity:
         )
         default_joint_damping = torch.empty(nworld, 0, dtype=torch.float, device=device)
 
-      # Joint limits and control parameters.
+      # Joint limits.
       joint_ids_global = [j.id for j in self._non_free_joints]
       dof_limits = model.jnt_range[:, joint_ids_global]
       default_joint_pos_limits = dof_limits.clone()
@@ -375,32 +395,36 @@ class Entity:
       joint_pos_mean = (joint_pos_limits[..., 0] + joint_pos_limits[..., 1]) / 2
       joint_pos_range = joint_pos_limits[..., 1] - joint_pos_limits[..., 0]
 
-      # Get soft limit factor from config.
-      if self.cfg.articulation:
-        soft_limit_factor = self.cfg.articulation.soft_joint_pos_limit_factor
-      else:
-        soft_limit_factor = 1.0
-
-      soft_joint_pos_limits = torch.zeros(nworld, self.num_joints, 2, device=device)
-      soft_joint_pos_limits[..., 0] = (
-        joint_pos_mean - 0.5 * joint_pos_range * soft_limit_factor
+      # Soft limits.
+      soft_limit_factor = (
+        self.cfg.articulation.soft_joint_pos_limit_factor
+        if self.cfg.articulation
+        else 1.0
       )
-      soft_joint_pos_limits[..., 1] = (
-        joint_pos_mean + 0.5 * joint_pos_range * soft_limit_factor
+      soft_joint_pos_limits = torch.stack(
+        [
+          joint_pos_mean - 0.5 * joint_pos_range * soft_limit_factor,
+          joint_pos_mean + 0.5 * joint_pos_range * soft_limit_factor,
+        ],
+        dim=-1,
       )
     else:
-      # Non-articulated entities - create empty tensors.
-      default_joint_pos = torch.empty(nworld, 0, dtype=torch.float, device=device)
-      default_joint_vel = torch.empty(nworld, 0, dtype=torch.float, device=device)
+      empty_shape = (nworld, 0)
+      default_joint_pos = torch.empty(*empty_shape, dtype=torch.float, device=device)
+      default_joint_vel = torch.empty(*empty_shape, dtype=torch.float, device=device)
+      default_joint_stiffness = torch.empty(
+        *empty_shape, dtype=torch.float, device=device
+      )
+      default_joint_damping = torch.empty(
+        *empty_shape, dtype=torch.float, device=device
+      )
       default_joint_pos_limits = torch.empty(
-        nworld, 0, 2, dtype=torch.float, device=device
+        *empty_shape, 2, dtype=torch.float, device=device
       )
-      joint_pos_limits = torch.empty(nworld, 0, 2, dtype=torch.float, device=device)
+      joint_pos_limits = torch.empty(*empty_shape, 2, dtype=torch.float, device=device)
       soft_joint_pos_limits = torch.empty(
-        nworld, 0, 2, dtype=torch.float, device=device
+        *empty_shape, 2, dtype=torch.float, device=device
       )
-      default_joint_stiffness = torch.empty(nworld, 0, dtype=torch.float, device=device)
-      default_joint_damping = torch.empty(nworld, 0, dtype=torch.float, device=device)
 
     self._data = EntityData(
       indexing=indexing,
@@ -421,6 +445,8 @@ class Entity:
       is_articulated=self.is_articulated,
       is_actuated=self.is_actuated,
     )
+    #self.data.print_all_properties()
+    #exit()
 
   def update(self, dt: float) -> None:
     del dt  # Unused.
@@ -448,6 +474,7 @@ class Entity:
       env_ids: Optional tensor or slice specifying which environments to set. If
         None, all environments are set.
     """
+
     self._data.write_root_state(root_state, env_ids)
 
   def write_root_link_pose_to_sim(
@@ -463,6 +490,7 @@ class Entity:
       env_ids: Optional tensor or slice specifying which environments to set. If
         None, all environments are set.
     """
+
     self._data.write_root_pose(root_pose, env_ids)
 
   def write_root_link_velocity_to_sim(
@@ -581,6 +609,21 @@ class Entity:
     """
     self._data.write_external_wrench(forces, torques, body_ids, env_ids)
 
+  def write_mocap_pose_to_sim(
+    self,
+    mocap_pose: torch.Tensor,
+    env_ids: torch.Tensor | slice | None = None,
+  ) -> None:
+    """Set the pose of a mocap body into the simulation.
+
+    Args:
+      mocap_pose: Tensor of shape (N, 7) where N is the number of environments.
+        Format: [pos_x, pos_y, pos_z, quat_w, quat_x, quat_y, quat_z]
+      env_ids: Optional tensor or slice specifying which environments to set. If
+        None, all environments are set.
+    """
+    self._data.write_mocap_pose(mocap_pose, env_ids)
+
   ##
   # Private methods.
   ##
@@ -633,6 +676,11 @@ class Entity:
         start_adr, start_adr + dim, dtype=torch.int, device=device
       )
 
+    if self.is_fixed_base and self.is_mocap:
+      mocap_id = int(model.body_mocapid[self.root_body.id])
+    else:
+      mocap_id = None
+
     return EntityIndexing(
       bodies=bodies,
       joints=joints,
@@ -649,4 +697,5 @@ class Entity:
       free_joint_q_adr=free_joint_q_adr,
       free_joint_v_adr=free_joint_v_adr,
       sensor_adr=sensor_adr,
+      mocap_id=mocap_id,
     )

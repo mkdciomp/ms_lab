@@ -1,10 +1,10 @@
-from mjlab.rl.config import (
+from ms_lab.rl.config import (
   RslRlBaseRunnerCfg,
   RslRlOnPolicyRunnerCfg,
   RslRlPpoActorCriticCfg,
   RslRlPpoAlgorithmCfg,
 )
-from mjlab.rl.vecenv_wrapper import RslRlVecEnvWrapper
+from ms_lab.rl.vecenv_wrapper import RslRlVecEnvWrapper
 
 __all__ = (
   "RslRlPpoActorCriticCfg",

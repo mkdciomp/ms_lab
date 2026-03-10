@@ -7,12 +7,12 @@ from typing import TYPE_CHECKING
 import torch
 from prettytable import PrettyTable
 
-from mjlab.managers.manager_base import ManagerBase
-from mjlab.managers.manager_term_config import EventMode, EventTermCfg
-from mjlab.utils.dataclasses import get_terms
+from ms_lab.managers.manager_base import ManagerBase
+from ms_lab.managers.manager_term_config import EventMode, EventTermCfg
+from ms_lab.utils.dataclasses import get_terms
 
 if TYPE_CHECKING:
-  from mjlab.envs.manager_based_env import ManagerBasedEnv
+  from ms_lab.envs.manager_based_env import ManagerBasedEnv
 
 
 class EventManager(ManagerBase):
@@ -184,6 +184,8 @@ class EventManager(ManagerBase):
         self._mode_class_term_cfgs[term_cfg.mode] = list()
       self._mode_term_names[term_cfg.mode].append(term_name)
       self._mode_term_cfgs[term_cfg.mode].append(term_cfg)
+      if hasattr(term_cfg.func, "reset") and callable(term_cfg.func.reset):
+        self._mode_class_term_cfgs[term_cfg.mode].append(term_cfg)
       if term_cfg.mode == "interval":
         if term_cfg.interval_range_s is None:
           raise ValueError(

@@ -74,7 +74,7 @@ class RslRlBaseRunnerCfg:
   max_iterations: int = 300
   """The maximum number of iterations."""
   obs_groups: dict[str, list[str]] = field(
-    default_factory=lambda: {"policy": ["policy"], "critic": ["policy", "critic"]},
+    default_factory=lambda: {"policy": ["policy"], "critic": ["critic" ]},
   )
   save_interval: int = 50
   """The number of iterations between saves."""
@@ -84,7 +84,7 @@ class RslRlBaseRunnerCfg:
   """The run name. Default is empty string."""
   logger: Literal["wandb", "tensorboard"] = "wandb"
   """The logger to use. Default is wandb."""
-  wandb_project: str = "mjlab"
+  wandb_project: str = "ms_lab"
   """The wandb project name."""
   resume: bool = False
   """Whether to resume the experiment. Default is False."""

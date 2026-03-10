@@ -16,7 +16,7 @@ import numpy as np
 import scipy.interpolate as interpolate
 from scipy import ndimage
 
-from mjlab.terrains.terrain_generator import (
+from ms_lab.terrains.terrain_generator import (
   SubTerrainCfg,
   TerrainGeometry,
   TerrainOutput,
@@ -106,7 +106,7 @@ class HfPyramidSlopedTerrainCfg(SubTerrainCfg):
   platform_width: float = 1.0
   inverted: bool = False
   border_width: float = 0.0
-  horizontal_scale: float = 0.1
+  horizontal_scale: float = 0.05
   vertical_scale: float = 0.005
   base_thickness_ratio: float = 1.0
 
