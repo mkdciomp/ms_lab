@@ -4,15 +4,15 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from mjlab.entity import Entity
-from mjlab.managers.action_manager import ActionTerm
-from mjlab.third_party.isaaclab.isaaclab.utils.string import (
+from ms_lab.entity import Entity
+from ms_lab.managers.action_manager import ActionTerm
+from ms_lab.third_party.isaaclab.isaaclab.utils.string import (
   resolve_matching_names_values,
 )
 
 if TYPE_CHECKING:
-  from mjlab.envs.manager_based_env import ManagerBasedEnv
-  from mjlab.envs.mdp.actions import actions_config
+  from ms_lab.envs.manager_based_env import ManagerBasedEnv
+  from ms_lab.envs.mdp.actions import actions_config
 
 
 class JointAction(ActionTerm):
@@ -23,12 +23,18 @@ class JointAction(ActionTerm):
   def __init__(self, cfg: actions_config.JointActionCfg, env: ManagerBasedEnv):
     super().__init__(cfg=cfg, env=env)
 
+
     actuator_ids, self._actuator_names = self._asset.find_actuators(
       cfg.actuator_names, preserve_order=cfg.preserve_order
     )
+    joint_ids, _ = self._asset.find_joints(
+      self._actuator_names, preserve_order=cfg.preserve_order
+    )
+
     self._actuator_ids = torch.tensor(
       actuator_ids, device=self.device, dtype=torch.long
     )
+    self._joint_ids = torch.tensor(joint_ids, device=self.device, dtype=torch.long)
 
     self._num_joints = len(self._actuator_ids)
     self._action_dim = len(self._actuator_ids)
@@ -40,6 +46,7 @@ class JointAction(ActionTerm):
       self._scale = float(cfg.scale)
     elif isinstance(cfg.scale, dict):
       self._scale = torch.ones(self.num_envs, self.action_dim, device=self.device)
+
       index_list, _, value_list = resolve_matching_names_values(
         cfg.scale, self._actuator_names
       )
@@ -83,7 +90,10 @@ class JointAction(ActionTerm):
     return self._action_dim
 
   def process_actions(self, actions: torch.Tensor):
+
+
     self._raw_actions[:] = actions
+
     self._processed_actions = self._raw_actions * self._scale + self._offset
 
   def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
@@ -95,9 +105,31 @@ class JointPositionAction(JointAction):
     super().__init__(cfg=cfg, env=env)
 
     if cfg.use_default_offset:
-      self._offset = self._asset.data.default_joint_pos[:, self._actuator_ids].clone()
+
+      self._offset = self._asset.data.default_joint_pos[:, self._joint_ids].clone()
 
   def apply_actions(self):
     self._asset.write_joint_position_target_to_sim(
+      self._processed_actions, self._actuator_ids
+    )
+
+class JointVelocityAction(JointAction):
+  def __init__(self, cfg: actions_config.JointVelocityActionCfg, env: ManagerBasedEnv):
+    super().__init__(cfg=cfg, env=env)
+
+
+  def apply_actions(self):
+    self._asset.write_joint_velocity_target_to_sim(
+      self._processed_actions, self._actuator_ids
+    )
+
+
+class JointEffortsAction(JointAction):
+  def __init__(self, cfg: actions_config.JointEffortsActionCfg, env: ManagerBasedEnv):
+    super().__init__(cfg=cfg, env=env)
+
+
+  def apply_actions(self):
+    self._asset.write_joint_efforts_to_sim(
       self._processed_actions, self._actuator_ids
     )
